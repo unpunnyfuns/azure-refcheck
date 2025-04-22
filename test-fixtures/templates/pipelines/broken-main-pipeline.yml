@@ -1,0 +1,34 @@
+# Simple pipeline with cross-repository references and an intentional error
+name: Broken Main Pipeline
+
+# Reference repositories with templates
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: organization/template-repo
+    
+    - repository: infra
+      type: git
+      name: organization/infra-repo
+
+steps:
+  # Reference to template in external repository
+  - template: templates/common-build.yml@templates
+    parameters:
+      language: 'nodejs'
+  
+  # Reference to test template in external repository
+  - template: templates/common-test.yml@templates
+    parameters:
+      language: 'nodejs'
+  
+  # Reference to infrastructure template
+  - template: templates/azure-deploy.yml@infra
+    parameters:
+      environment: 'dev'
+  
+  # Reference to a nonexistent template (to test broken reference)
+  - template: templates/nonexistent-template.yml@templates
+    parameters:
+      environment: 'dev'

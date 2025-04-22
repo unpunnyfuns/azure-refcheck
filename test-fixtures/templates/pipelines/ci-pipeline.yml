@@ -1,0 +1,8 @@
+# Simple CI pipeline
+name: CI Pipeline
+
+steps:
+  # Reference to a local template
+  - template: ../templates/build-template.yml
+    parameters:
+      language: 'nodejs'

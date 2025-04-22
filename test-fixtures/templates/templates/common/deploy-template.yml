@@ -1,0 +1,9 @@
+# Simple deploy template
+parameters:
+  - name: environment
+    type: string
+    default: 'dev'
+    
+steps:
+  - script: |
+      echo "Deploy template for validation testing"

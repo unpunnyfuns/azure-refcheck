@@ -1,0 +1,13 @@
+# Simple pipeline with template references
+name: CD Pipeline
+
+steps:
+  # Reference to local templates
+  - template: ../templates/deploy-template.yml
+    parameters:
+      environment: 'dev'
+  
+  # Reference to another template
+  - template: ../templates/build-template.yml
+    parameters:
+      language: 'nodejs'

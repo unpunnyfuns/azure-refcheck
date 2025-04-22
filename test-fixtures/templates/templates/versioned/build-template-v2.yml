@@ -1,0 +1,10 @@
+# Simple build template (v2)
+parameters:
+  - name: language
+    type: string
+    default: 'any'
+
+steps:
+  - script: |
+      echo "Build template v2 for validation testing"
+      echo "Language: ${{ parameters.language }}"

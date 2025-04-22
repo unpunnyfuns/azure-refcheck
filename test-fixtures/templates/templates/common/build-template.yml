@@ -1,0 +1,9 @@
+# Simple build template
+parameters:
+  - name: language
+    type: string
+    default: 'any'
+
+steps:
+  - script: |
+      echo "Build template for validation testing"

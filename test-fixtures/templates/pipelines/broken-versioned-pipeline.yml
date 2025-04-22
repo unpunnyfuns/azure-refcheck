@@ -1,0 +1,42 @@
+# Pipeline with broken versioned template references
+name: Broken Versioned Pipeline
+
+resources:
+  repositories:
+    # Reference templates with version 1.0
+    - repository: templatesV1
+      type: git
+      name: organization/template-repo
+      ref: refs/tags/v1.0
+      
+    # Reference templates with non-existent version 9.9.9  
+    - repository: templatesInvalid
+      type: git
+      name: organization/template-repo
+      ref: refs/tags/v9.9.9
+      
+    # Reference templates without version specification
+    - repository: templates
+      type: git
+      name: organization/template-repo
+
+steps:
+  # Reference to template using v1.0 versioned repository resource (valid)
+  - template: templates/build-template.yml@templatesV1
+    parameters:
+      language: 'nodejs'
+  
+  # Reference to template using non-existent version v9.9.9 (invalid)
+  - template: templates/build-template.yml@templatesInvalid
+    parameters:
+      language: 'nodejs'
+  
+  # Reference to template without version specification (valid)
+  - template: templates/test-template.yml@templates
+    parameters:
+      language: 'nodejs'
+  
+  # Reference to non-existent template in valid repo (invalid)
+  - template: templates/nonexistent-template.yml@templatesV1
+    parameters:
+      language: 'nodejs'

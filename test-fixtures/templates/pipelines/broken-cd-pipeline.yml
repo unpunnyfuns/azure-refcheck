@@ -1,0 +1,13 @@
+# Simple pipeline with a broken reference
+name: Broken CD Pipeline
+
+steps:
+  # Reference to a valid template
+  - template: ../templates/deploy-template.yml
+    parameters:
+      environment: 'dev'
+  
+  # Reference to a nonexistent template (to test broken reference)
+  - template: ../templates/nonexistent-template.yml
+    parameters:
+      environment: 'test'

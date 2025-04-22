@@ -1,0 +1,10 @@
+# Simple test template
+parameters:
+  - name: language
+    type: string
+    default: 'any'
+
+steps:
+  - script: |
+      echo "Test template for validation testing"
+      echo "Language: ${{ parameters.language }}"

@@ -1,0 +1,14 @@
+{
+  "repositories": [
+    {
+      "name": "main-repo",
+      "path": "./main-repo",
+      "aliases": ["self"]
+    },
+    {
+      "name": "organization/template-repo",
+      "path": "./template-repo",
+      "aliases": ["templates"]
+    }
+  ]
+}

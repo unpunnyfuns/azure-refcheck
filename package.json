@@ -1,0 +1,100 @@
+{
+  "name": "@unpunnyfuns/azure-refcheck",
+  "version": "0.1.0",
+  "description": "Azure Pipeline template reference validator - Checks template imports and extensions across repositories",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "README.md", "bin"],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./config": {
+      "import": "./dist/config.js",
+      "types": "./dist/config.d.ts"
+    },
+    "./utils/*": {
+      "import": "./dist/utils/*.js",
+      "types": "./dist/utils/*.d.ts"
+    },
+    "./cli": {
+      "import": "./dist/cli.js",
+      "types": "./dist/cli.d.ts"
+    }
+  },
+  "imports": {
+    "#utils/*": {
+      "development": "./src/utils/*.ts",
+      "default": "./dist/utils/*.js"
+    },
+    "#config": {
+      "development": "./src/config.ts",
+      "default": "./dist/config.js"
+    },
+    "#validator": {
+      "development": "./src/validator.ts",
+      "default": "./dist/validator.js"
+    },
+    "#validators/*": {
+      "development": "./src/validators/*.ts",
+      "default": "./dist/validators/*.js"
+    },
+    "#cli": {
+      "development": "./src/cli.ts",
+      "default": "./dist/cli.js"
+    }
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc && cp dist/cli.js dist/cli.mjs && chmod +x dist/cli.mjs",
+    "prepublishOnly": "node scripts/prepare-package.js && npm run build",
+    "postpublish": "node scripts/restore-package.js",
+    "test": "cross-env NODE_ENV=test vitest",
+    "test:watch": "cross-env NODE_ENV=test vitest --watch",
+    "test:coverage": "cross-env NODE_ENV=test vitest run --coverage",
+    "dev": "npm run build -- --watch",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "format": "biome format .",
+    "format:fix": "biome format --write .",
+    "check": "biome check --write .",
+    "check:unsafe": "biome check --write --unsafe .",
+    "prepare": "npm run build",
+    "ci": "npm run lint && npm run test && npm run build",
+    "quality": "npm run check && npm run test && npm run build",
+    "validate": "bash ./test-fixtures/run-validation-check.sh"
+  },
+  "bin": {
+    "azrefcheck": "dist/cli.mjs"
+  },
+  "author": "unpunnyfuns <unpunnyfuns@gmail.com>",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/unpunnyfuns/pipeline-validation.git"
+  },
+  "keywords": ["azure", "pipeline", "devops", "yaml", "validation", "templates", "reference-checker", "azure-devops", "azure-pipelines", "ci-cd"],
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "glob": "^11.0.1",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/glob": "^8.1.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.14.1",
+    "@vitest/coverage-v8": "^3.1.2",
+    "cross-env": "^7.0.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  }
+}

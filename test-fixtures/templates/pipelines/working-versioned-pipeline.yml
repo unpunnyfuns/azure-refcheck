@@ -1,0 +1,37 @@
+# Simple pipeline with versioned template references
+name: Versioned Main Pipeline
+
+resources:
+  repositories:
+    # Reference templates with version 1.0
+    - repository: templatesV1
+      type: git
+      name: organization/template-repo
+      ref: refs/tags/v1.0
+      
+    # Reference templates with version 2.0  
+    - repository: templatesV2
+      type: git
+      name: organization/template-repo
+      ref: refs/tags/v2.0
+      
+    # Reference templates without version specification
+    - repository: templates
+      type: git
+      name: organization/template-repo
+
+steps:
+  # Reference to template using v1.0 versioned repository resource
+  - template: templates/build-template.yml@templatesV1
+    parameters:
+      language: 'nodejs'
+  
+  # Reference to template using v2.0 versioned repository resource
+  - template: templates/build-template-v2.yml@templatesV2
+    parameters:
+      language: 'nodejs'
+  
+  # Reference to template without version specification
+  - template: templates/test-template.yml@templates
+    parameters:
+      language: 'nodejs'

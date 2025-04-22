@@ -1,0 +1,10 @@
+# Simple infrastructure deployment template
+parameters:
+  - name: environment
+    type: string
+    default: 'dev'
+
+steps:
+  - script: |
+      echo "Azure deployment template for validation testing"
+      echo "Environment: ${{ parameters.environment }}"
