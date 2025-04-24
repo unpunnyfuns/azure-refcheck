@@ -2,11 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { glob } from "glob";
 import {
-  fileExists as fsExists,
-  readFile,
-  writeFile as fsWrite,
   dirname,
+  fileExists as fsExists,
+  writeFile as fsWrite,
   getFileSystem,
+  readFile,
 } from "./filesystem.js";
 
 /**

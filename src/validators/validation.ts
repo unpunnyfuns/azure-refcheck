@@ -1,4 +1,5 @@
 import type { RepoConfig } from "#config";
+import { fileExists, joinPaths } from "#utils/filesystem";
 import { validateFileAtVersion, validateRepoVersion } from "#utils/git";
 import { parseVersionReference } from "#validators/parsers";
 import {
@@ -11,7 +12,6 @@ import {
   type ValidationResult,
 } from "#validators/types";
 import { findRepoConfig, resolveTargetPath } from "#validators/utils";
-import { fileExists, joinPaths } from "#utils/filesystem";
 
 /**
  * Validates a reference to a template in an external repository
@@ -36,12 +36,24 @@ export function validateExternalReference(
     return ReferenceValidationResult.MISSING_REPO;
   }
 
-  // Check if version exists if specified
-  if (reference.targetVersion) {
-    // For Azure Pipelines, version refs need special handling
-    let version = reference.targetVersion;
-    let versionType = reference.versionType || "branch";
+  // Determine which version to use for validation:
+  // 1. First use explicit targetVersion from the reference if present
+  // 2. Otherwise use the ref from the target repo config if specified
+  // 3. Default to HEAD if neither is present
+  let version: string | undefined;
+  let versionType: "branch" | "tag" | "commit" | undefined;
 
+  if (reference.targetVersion) {
+    // Use the version specified in the reference
+    version = reference.targetVersion;
+    versionType = reference.versionType;
+  } else if (targetRepoConfig.ref) {
+    // Use the version from the repo config
+    version = targetRepoConfig.ref;
+  }
+
+  // If we have a version to validate, do so
+  if (version) {
     // Handle Azure Pipelines ref format if needed
     if (version.startsWith("refs/")) {
       // The parseVersionReference function will handle extracting the actual version
@@ -49,6 +61,17 @@ export function validateExternalReference(
       const versionInfo = parseVersionReference(version);
       version = versionInfo.version;
       versionType = versionInfo.versionType;
+    } else if (!versionType) {
+      // If version type is not explicitly set, try to determine it from the version string
+      if (version.match(/^[0-9a-f]{40}$/i)) {
+        versionType = "commit";
+      } else if (version.startsWith("v") && version.match(/^v\d/)) {
+        // Common tag format (v1.0.0)
+        versionType = "tag";
+      } else {
+        // Default to branch
+        versionType = "branch";
+      }
     }
 
     if (!validateRepoVersion(targetRepoConfig.path, version, versionType)) {
@@ -81,18 +104,34 @@ export function validateExternalReference(
   }
 
   // If a version is specified or the file wasn't found at HEAD, check with git version handling
+  // Determine the version type if it's not already set
+  const versionToUse = reference.targetVersion || targetRepoConfig.ref;
+  let versionTypeToUse = reference.versionType;
+
+  // If we have a version but no type, try to determine it
+  if (versionToUse && !versionTypeToUse) {
+    if (versionToUse.match(/^[0-9a-f]{40}$/i)) {
+      versionTypeToUse = "commit";
+    } else if (versionToUse.startsWith("v") && versionToUse.match(/^v\d/)) {
+      versionTypeToUse = "tag";
+    } else {
+      versionTypeToUse = "branch";
+    }
+  }
+
   if (
     !validateFileAtVersion(
       targetRepoConfig.path,
       reference.target,
-      reference.targetVersion,
-      reference.versionType
+      versionToUse,
+      versionTypeToUse
     )
   ) {
+    const versionDescription = versionToUse;
     brokenReferences.push({
       ...reference,
       target: `Template not found: ${reference.target} in repo ${targetRepo}${
-        reference.targetVersion ? ` at version ${reference.targetVersion}` : ""
+        versionDescription ? ` at version ${versionDescription}` : ""
       }`,
     });
     return ReferenceValidationResult.BROKEN_PATH;

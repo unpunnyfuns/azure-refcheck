@@ -1,8 +1,8 @@
+import fs from "node:fs";
 /**
  * Mock implementation of filesystem.ts for testing
  */
 import path from "node:path";
-import fs from "node:fs";
 
 export interface FileSystem {
   readFile(filePath: string): string;

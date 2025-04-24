@@ -2,10 +2,9 @@
 
 import fs, { type PathLike } from "node:fs";
 import path from "node:path";
-import { Command } from "commander";
-import { type ValidationResult, validatePipelines } from "#validator";
-import type { RepoConfig } from "#config";
 import * as url from "node:url";
+import { Command } from "commander";
+import type { RepoConfig } from "#config";
 import {
   AzureRefCheckError,
   ConfigurationError,
@@ -14,6 +13,7 @@ import {
 } from "#errors";
 import { ConsoleFormatter, FormatterFactory } from "#formatters/output";
 import type { FormatterOptions } from "#formatters/output";
+import { type ValidationResult, validatePipelines } from "#validator";
 
 // Setup version from package.json
 const packageJson = JSON.parse(

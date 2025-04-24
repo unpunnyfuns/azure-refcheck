@@ -35,11 +35,11 @@ vi.mock("#validators/references", () => ({
   discoverRepositoryAliases: vi.fn((repos) => repos),
 }));
 
+import { fileExists as fileUtilsFileExists } from "#utils/file";
+import { fileExists } from "#utils/filesystem";
 // Import mocked modules
 import { validateFileAtVersion, validateRepoVersion } from "#utils/git";
 import { collectAllReferences } from "#validators/references";
-import { fileExists } from "#utils/filesystem";
-import { fileExists as fileUtilsFileExists } from "#utils/file";
 
 describe("Validation Module", () => {
   beforeEach(() => {
@@ -80,6 +80,54 @@ describe("Validation Module", () => {
       expect(validRefs).toHaveLength(1);
       expect(brokenRefs).toHaveLength(0);
       expect(versionIssues).toHaveLength(0);
+    });
+
+    test("should use repository configuration ref when reference has no version", () => {
+      // Setup mocks
+      vi.mocked(fileExists).mockReturnValue(false);
+      vi.mocked(validateRepoVersion).mockReturnValue(true);
+      vi.mocked(validateFileAtVersion).mockReturnValue(true);
+
+      const reference: PipelineReference = {
+        source: "/path/to/source.yml",
+        target: "template.yml",
+        targetRepo: "template-repo",
+        lineNumber: 10,
+        context: "template: template.yml@template-repo",
+      };
+
+      const validRefs: PipelineReference[] = [];
+      const brokenRefs: PipelineReference[] = [];
+      const versionIssues: PipelineReference[] = [];
+
+      const repoConfigs = [
+        {
+          name: "template-repo",
+          path: "/path/to/template-repo",
+          aliases: [],
+          ref: "main",
+        },
+      ];
+
+      const result = validateExternalReference(
+        reference,
+        "template-repo",
+        repoConfigs,
+        validRefs,
+        brokenRefs,
+        versionIssues
+      );
+
+      expect(result).toBe(ReferenceValidationResult.VALID);
+      expect(validRefs).toHaveLength(1);
+      expect(brokenRefs).toHaveLength(0);
+      expect(versionIssues).toHaveLength(0);
+      expect(validateFileAtVersion).toHaveBeenCalledWith(
+        "/path/to/template-repo",
+        "template.yml",
+        "main",
+        "branch" // Should still infer "branch" as the version type
+      );
     });
 
     test("should handle missing repository", () => {
@@ -153,6 +201,111 @@ describe("Validation Module", () => {
       expect(validateRepoVersion).toHaveBeenCalledWith(
         "/path/to/template-repo",
         "v1.0.0",
+        "tag"
+      );
+    });
+
+    test("should prioritize reference version over repository configuration ref", () => {
+      // Setup mocks
+      vi.mocked(validateRepoVersion).mockReturnValue(true);
+      vi.mocked(validateFileAtVersion).mockReturnValue(true);
+      vi.mocked(fileExists).mockReturnValue(false);
+
+      const reference: PipelineReference = {
+        source: "/path/to/source.yml",
+        target: "template.yml",
+        targetRepo: "template-repo",
+        targetVersion: "v2.0.0",
+        versionType: "tag",
+        lineNumber: 10,
+        context: "template: template.yml@template-repo@v2.0.0",
+      };
+
+      const validRefs: PipelineReference[] = [];
+      const brokenRefs: PipelineReference[] = [];
+      const versionIssues: PipelineReference[] = [];
+
+      const repoConfigs = [
+        {
+          name: "template-repo",
+          path: "/path/to/template-repo",
+          aliases: [],
+          ref: "v1.0.0",
+        },
+      ];
+
+      const result = validateExternalReference(
+        reference,
+        "template-repo",
+        repoConfigs,
+        validRefs,
+        brokenRefs,
+        versionIssues
+      );
+
+      expect(result).toBe(ReferenceValidationResult.VALID);
+      expect(validRefs).toHaveLength(1);
+      expect(brokenRefs).toHaveLength(0);
+      expect(versionIssues).toHaveLength(0);
+      // Should use the reference version, not the repo config version
+      expect(validateRepoVersion).toHaveBeenCalledWith(
+        "/path/to/template-repo",
+        "v2.0.0",
+        "tag"
+      );
+      expect(validateFileAtVersion).toHaveBeenCalledWith(
+        "/path/to/template-repo",
+        "template.yml",
+        "v2.0.0",
+        "tag"
+      );
+    });
+
+    test("should infer version type from version format", () => {
+      // Setup mocks
+      vi.mocked(validateRepoVersion).mockReturnValue(true);
+      vi.mocked(validateFileAtVersion).mockReturnValue(true);
+      vi.mocked(fileExists).mockReturnValue(false);
+
+      const reference: PipelineReference = {
+        source: "/path/to/source.yml",
+        target: "template.yml",
+        targetRepo: "template-repo",
+        lineNumber: 10,
+        context: "template: template.yml@template-repo",
+      };
+
+      const validRefs: PipelineReference[] = [];
+      const brokenRefs: PipelineReference[] = [];
+      const versionIssues: PipelineReference[] = [];
+
+      const repoConfigs = [
+        {
+          name: "template-repo",
+          path: "/path/to/template-repo",
+          aliases: [],
+          ref: "v3.0.0", // Version format suggests this is a tag
+        },
+      ];
+
+      const result = validateExternalReference(
+        reference,
+        "template-repo",
+        repoConfigs,
+        validRefs,
+        brokenRefs,
+        versionIssues
+      );
+
+      expect(result).toBe(ReferenceValidationResult.VALID);
+      expect(validRefs).toHaveLength(1);
+      expect(brokenRefs).toHaveLength(0);
+      expect(versionIssues).toHaveLength(0);
+      // Should infer "tag" as the version type based on the format
+      expect(validateFileAtVersion).toHaveBeenCalledWith(
+        "/path/to/template-repo",
+        "template.yml",
+        "v3.0.0",
         "tag"
       );
     });

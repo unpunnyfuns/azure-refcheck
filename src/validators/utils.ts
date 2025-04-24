@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 import type { RepoConfig } from "#config";
-import { getFileSystem, joinPaths, dirname } from "#utils/filesystem";
+import { dirname, getFileSystem, joinPaths } from "#utils/filesystem";
 
 /**
  * Extracts the line number for a regex match in text

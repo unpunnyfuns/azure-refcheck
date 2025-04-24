@@ -1,6 +1,6 @@
 import path from "node:path";
-import type { ValidationResult } from "#validator";
 import type { RepoConfig } from "#config";
+import type { ValidationResult } from "#validator";
 import type { PipelineReference } from "#validators/types";
 
 /**

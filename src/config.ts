@@ -15,6 +15,12 @@ export type RepoConfig = {
    * These are typically discovered automatically from pipeline files.
    */
   aliases?: string[];
+  /**
+   * Optional git reference to use for validation.
+   * Can be a branch name, tag, or commit SHA.
+   * Git will automatically determine the appropriate reference type.
+   */
+  ref?: string;
 };
 
 /**

@@ -29,13 +29,15 @@ vi.mock("#utils/filesystem", () => ({
 }));
 
 vi.mock("#validators/references", () => ({
-  collectAllReferences: vi.fn().mockReturnValue([{
-    source: "/repo/pipeline.yml",
-    target: "template.yml",
-    lineNumber: 10,
-    context: "template: template.yml",
-  }]),
-  discoverRepositoryAliases: vi.fn(repos => repos),
+  collectAllReferences: vi.fn().mockReturnValue([
+    {
+      source: "/repo/pipeline.yml",
+      target: "template.yml",
+      lineNumber: 10,
+      context: "template: template.yml",
+    },
+  ]),
+  discoverRepositoryAliases: vi.fn((repos) => repos),
 }));
 
 // Create a mock implementation of validatePipelines
@@ -46,41 +48,50 @@ vi.mock("#validator", () => ({
 describe("validator", () => {
   beforeEach(async () => {
     vi.resetAllMocks();
-    
+
     // Import modules after mock setup
     fileUtils = await import("#utils/file");
     gitUtils = await import("#utils/git");
     fsUtils = await import("#utils/filesystem");
     const validatorModule = await import("#validator");
     validatePipelines = validatorModule.validatePipelines;
-    
+
     // Configure validatePipelines mock implementation
     vi.mocked(validatePipelines).mockImplementation((repos) => {
       // Call the findPipelineFiles to track calls
       if (typeof repos === "string") {
         fileUtils.findPipelineFiles(repos);
       } else if (Array.isArray(repos)) {
-        repos.forEach(repo => fileUtils.findPipelineFiles(repo.path));
+        repos.forEach((repo) => fileUtils.findPipelineFiles(repo.path));
       }
 
       // Use file existence to determine if validation passes
-      const fileExistsValue = vi.mocked(fileUtils.fileExists).getMockImplementation()?.() ?? true;
-      
+      const fileExistsValue =
+        vi.mocked(fileUtils.fileExists).getMockImplementation()?.() ?? true;
+
       return {
         isValid: fileExistsValue,
-        brokenReferences: fileExistsValue ? [] : [{
-          source: "/repo/pipeline.yml",
-          target: "missing-template.yml",
-          lineNumber: 10,
-          context: "template: missing-template.yml",
-        }],
-        validReferences: fileExistsValue ? [{
-          source: "/repo/pipeline.yml",
-          target: "template.yml",
-          lineNumber: 10,
-          context: "template: template.yml",
-        }] : [],
-        versionIssues: []
+        brokenReferences: fileExistsValue
+          ? []
+          : [
+              {
+                source: "/repo/pipeline.yml",
+                target: "missing-template.yml",
+                lineNumber: 10,
+                context: "template: missing-template.yml",
+              },
+            ],
+        validReferences: fileExistsValue
+          ? [
+              {
+                source: "/repo/pipeline.yml",
+                target: "template.yml",
+                lineNumber: 10,
+                context: "template: template.yml",
+              },
+            ]
+          : [],
+        versionIssues: [],
       };
     });
   });
