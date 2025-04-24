@@ -70,11 +70,8 @@ npm run validate -- --verbose
 # Run without cleanup (for debugging)
 npm run validate -- --no-cleanup
 
-# Generate a dependency graph (in text format)
-npm run validate -- --graph
-
-# Generate a dependency graph in DOT format (for Graphviz)
-npm run validate -- --graph dot --graph-output graph.dot
+# Run with verbose output to see all details
+npm run validate -- --verbose
 ```
 
 You can also set up fixtures directly without running tests:

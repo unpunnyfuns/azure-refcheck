@@ -10,7 +10,6 @@ This tool analyzes Azure Pipeline YAML files to validate references between them
 - Cross-repository template references
 - Version-specific references (tags, branches, commits)
 - Repository aliases and versions
-- Dependency graphs for visualization of template relationships
 
 ## Installation
 
@@ -40,6 +39,19 @@ azrefcheck -a -b ./path/to/parent/dir -v
 
 # Save validation results to a file
 azrefcheck ./path/to/repo -o validation-results.md
+```
+
+### Command Line Options
+
+```
+Options:
+  -v, --verbose            Show verbose output with additional context (default: false)
+  -o, --output <file>      Output file for results (default: stdout)
+  -c, --config <file>      Configuration file (for multiple repositories)
+  -a, --auto-detect        Auto-detect repositories (used with --base-dir)
+  -b, --base-dir <dir>     Base directory for repository auto-detection
+  -h, --help               Display help
+  --version                Display version
 ```
 
 ### Configuration File
@@ -89,9 +101,9 @@ npm run validate
 
 For thorough testing, especially for version validation scenarios, we use external test fixtures. These provide realistic Git repositories with proper history, branches, and tags.
 
-See [External Fixtures Documentation](./test-fixtures/EXTERNAL_FIXTURES.md) for setup instructions.
+See [Test Fixtures README](./test-fixtures/README.md) for more details on how fixtures are structured and can be used.
 
 
 ## License
 
-UNLICENSED
+MIT
