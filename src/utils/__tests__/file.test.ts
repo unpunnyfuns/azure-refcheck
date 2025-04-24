@@ -28,6 +28,15 @@ vi.mock("glob", () => ({
   },
 }));
 
+// Mock filesystem.js module
+vi.mock("../filesystem.js", () => ({
+  fileExists: vi.fn((path) => fs.existsSync(path)),
+  readFile: vi.fn((path) => fs.readFileSync(path, "utf-8")),
+  writeFile: vi.fn((path, content) => fs.writeFileSync(path, content)),
+  dirname: vi.fn(path.dirname),
+  getFileSystem: vi.fn(),
+}));
+
 describe("file-utils", () => {
   beforeEach(() => {
     vi.resetAllMocks();

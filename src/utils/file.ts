@@ -1,6 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { glob } from "glob";
+import {
+  fileExists as fsExists,
+  readFile,
+  writeFile as fsWrite,
+  dirname,
+  getFileSystem,
+} from "./filesystem.js";
 
 /**
  * Find all YAML pipeline files in a directory
@@ -36,7 +43,7 @@ export function findPipelineFiles(rootDir: string): string[] {
  */
 export function fileExists(filePath: string): boolean {
   try {
-    return fs.existsSync(filePath);
+    return fsExists(filePath);
   } catch (error) {
     return false;
   }
@@ -47,7 +54,7 @@ export function fileExists(filePath: string): boolean {
  */
 export function readFileContent(filePath: string): string {
   try {
-    return fs.readFileSync(filePath, "utf-8");
+    return readFile(filePath);
   } catch (error) {
     console.error(`Error reading file ${filePath}: ${error}`);
     return "";
@@ -60,15 +67,25 @@ export function readFileContent(filePath: string): string {
 export function writeFile(filePath: string, content: string): boolean {
   try {
     // Ensure directory exists
-    const dirPath = path.dirname(filePath);
-    if (!fs.existsSync(dirPath)) {
+    const dirPath = dirname(filePath);
+    if (!fsExists(dirPath)) {
+      // For directory creation, we still need to use fs directly
+      // since it's not part of our abstraction
       fs.mkdirSync(dirPath, { recursive: true });
     }
 
-    fs.writeFileSync(filePath, content);
+    fsWrite(filePath, content);
     return true;
   } catch (error) {
     console.error(`Error writing to file ${filePath}: ${error}`);
     return false;
   }
+}
+
+/**
+ * Get the file system instance
+ * (Useful for tests that need to mock the file system)
+ */
+export function getFS() {
+  return getFileSystem();
 }

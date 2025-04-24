@@ -159,7 +159,7 @@ describe("CLI Module Tests", () => {
 
   describe("Summary Generation", () => {
     test("should generate a basic summary for valid results", async () => {
-      const { generateSummaryText } = await import("#cli");
+      const { FormatterFactory } = await import("#cli");
 
       const result: ValidationResult = {
         isValid: true,
@@ -174,7 +174,11 @@ describe("CLI Module Tests", () => {
         brokenReferences: [],
       };
 
-      const summary = generateSummaryText(result);
+      const formatter = FormatterFactory.createMarkdownFormatter({
+        verbose: false,
+        workingDirectory: "/test/cwd",
+      });
+      const summary = formatter.format(result);
 
       expect(summary).toContain("# Azure Pipeline Validation Summary");
       expect(summary).toContain("✅ All pipeline references are valid");
@@ -185,7 +189,7 @@ describe("CLI Module Tests", () => {
     });
 
     test("should generate summary with broken references", async () => {
-      const { generateSummaryText } = await import("#cli");
+      const { FormatterFactory } = await import("#cli");
 
       const brokenRef: PipelineReference = {
         source: "/test/cwd/src/pipeline.yml",
@@ -200,7 +204,11 @@ describe("CLI Module Tests", () => {
         brokenReferences: [brokenRef],
       };
 
-      const summary = generateSummaryText(result);
+      const formatter = FormatterFactory.createMarkdownFormatter({
+        verbose: false,
+        workingDirectory: "/test/cwd",
+      });
+      const summary = formatter.format(result);
 
       expect(summary).toContain("# Azure Pipeline Validation Summary");
       expect(summary).toContain("❌ Found 1 broken references");
@@ -214,7 +222,7 @@ describe("CLI Module Tests", () => {
     });
 
     test("should generate multiple repositories summary with version issues", async () => {
-      const { generateSummaryText } = await import("#cli");
+      const { FormatterFactory } = await import("#cli");
 
       const repoConfigs: RepoConfig[] = [
         { name: "main-repo", path: "/test/cwd/main-repo", aliases: [] },
@@ -250,7 +258,11 @@ describe("CLI Module Tests", () => {
         versionIssues: [versionIssue],
       };
 
-      const summary = generateSummaryText(result, repoConfigs);
+      const formatter = FormatterFactory.createMarkdownFormatter({
+        verbose: false,
+        workingDirectory: "/test/cwd",
+      });
+      const summary = formatter.format(result, repoConfigs);
 
       expect(summary).toContain(
         "# Azure Pipeline Multiple Repositories Validation Summary"

@@ -4,7 +4,16 @@ import fs, { type PathLike } from "node:fs";
 import path from "node:path";
 import { Command } from "commander";
 import { type ValidationResult, validatePipelines } from "#validator";
-import type { RepoConfig } from "./config.js";
+import type { RepoConfig } from "#config";
+import * as url from "node:url";
+import {
+  AzureRefCheckError,
+  ConfigurationError,
+  DirectoryNotFoundError,
+  handleError,
+} from "#errors";
+import { ConsoleFormatter, FormatterFactory } from "#formatters/output";
+import type { FormatterOptions } from "#formatters/output";
 
 // Setup version from package.json
 const packageJson = JSON.parse(
@@ -47,7 +56,7 @@ function autoDetectRepositories(basePath: string): RepoConfig[] {
     console.log(`Auto-detected ${repos.length} repositories`);
   } catch (error) {
     console.error(`Error scanning directory ${basePath}:`, error);
-    throw new Error(`Failed to scan directory: ${basePath}`);
+    throw new DirectoryNotFoundError(basePath);
   }
 
   return repos;
@@ -58,11 +67,14 @@ function autoDetectRepositories(basePath: string): RepoConfig[] {
  *
  * @param configPath - Path to the configuration file
  * @returns Array of repository configurations
+ * @throws ConfigurationError if configuration is invalid
  */
 function loadRepoConfig(configPath: string): RepoConfig[] {
   try {
     if (!fs.existsSync(configPath)) {
-      throw new Error(`Configuration file not found: ${configPath}`);
+      throw new ConfigurationError(
+        `Configuration file not found: ${configPath}`
+      );
     }
 
     const configContent = fs.readFileSync(configPath, "utf-8");
@@ -72,7 +84,7 @@ function loadRepoConfig(configPath: string): RepoConfig[] {
     const repos = config.repositories;
 
     if (!Array.isArray(repos)) {
-      throw new Error(
+      throw new ConfigurationError(
         "Invalid configuration format: expected a { repositories: [] } object"
       );
     }
@@ -80,10 +92,14 @@ function loadRepoConfig(configPath: string): RepoConfig[] {
     // Validate each repository configuration
     for (const repo of repos) {
       if (!repo.name) {
-        throw new Error('Each repository must have a "name" property');
+        throw new ConfigurationError(
+          'Each repository must have a "name" property'
+        );
       }
       if (!repo.path) {
-        throw new Error('Each repository must have a "path" property');
+        throw new ConfigurationError(
+          'Each repository must have a "path" property'
+        );
       }
 
       // Resolve relative paths
@@ -94,92 +110,166 @@ function loadRepoConfig(configPath: string): RepoConfig[] {
 
     return repos;
   } catch (error) {
-    if (error instanceof SyntaxError) {
-      throw new Error(`Invalid JSON in configuration file: ${configPath}`);
+    if (error instanceof AzureRefCheckError) {
+      throw error;
     }
-    throw error;
+
+    if (error instanceof SyntaxError) {
+      throw new ConfigurationError(
+        `Invalid JSON in configuration file: ${configPath}`
+      );
+    }
+
+    throw new ConfigurationError(
+      `Error loading configuration: ${String(error)}`
+    );
   }
+}
+
+/**
+ * Validates a directory exists
+ *
+ * @param dirPath - Directory path to validate
+ * @returns Absolute path to the directory
+ * @throws DirectoryNotFoundError if directory doesn't exist
+ */
+function validateDirectory(dirPath: string): string {
+  if (!fs.existsSync(dirPath)) {
+    throw new DirectoryNotFoundError(dirPath);
+  }
+
+  return path.resolve(dirPath);
+}
+
+/**
+ * Logs validation environment information in verbose mode
+ *
+ * @param options - Options object
+ * @param rootDir - Directory being validated
+ */
+function logVerboseInfo(
+  options: { verbose: boolean; outputPath?: string },
+  rootDir: string
+): void {
+  if (!options.verbose) return;
+
+  const absoluteRootDir = path.resolve(rootDir);
+
+  // Make it clear if we're validating a specific subdirectory
+  const isSpecificDir =
+    absoluteRootDir !== process.cwd() &&
+    absoluteRootDir.startsWith(process.cwd());
+
+  if (isSpecificDir) {
+    console.log(
+      `Validating Azure Pipeline references in specific directory: ${absoluteRootDir}`
+    );
+  } else {
+    console.log(`Validating Azure Pipeline references in: ${absoluteRootDir}`);
+  }
+
+  if (options.outputPath) {
+    console.log(`Summary will be saved to ${options.outputPath}`);
+  }
+
+  console.log(`Node.js version: ${process.version}`);
+  console.log(`Working directory: ${process.cwd()}`);
+}
+
+/**
+ * Logs repository information in verbose mode
+ *
+ * @param options - Options object
+ * @param repoConfigs - Repository configurations
+ */
+function logRepoInfo(
+  options: { verbose: boolean },
+  repoConfigs: RepoConfig[]
+): void {
+  if (!options.verbose) return;
+
+  console.log(`Validating ${repoConfigs.length} repositories:`);
+  repoConfigs.forEach((repo) => {
+    console.log(`- ${repo.name}: ${repo.path}`);
+  });
+
+  console.log(`Node.js version: ${process.version}`);
+  console.log(`Working directory: ${process.cwd()}`);
+}
+
+/**
+ * Saves validation result to file
+ *
+ * @param outputPath - Output file path
+ * @param content - Content to save
+ */
+function saveOutputToFile(outputPath: string, content: string): void {
+  fs.writeFileSync(outputPath, content);
+  console.log(`Summary saved to ${outputPath}`);
+}
+
+/**
+ * Get repository configurations based on command line options
+ *
+ * @param options - Command line options
+ * @returns Repository configurations
+ */
+function getRepositoryConfigs(options: {
+  configPath?: string;
+  autoDetect: boolean;
+  basePath: string;
+}): RepoConfig[] {
+  const { configPath, autoDetect, basePath } = options;
+
+  if (autoDetect) {
+    return autoDetectRepositories(basePath);
+  }
+
+  if (configPath) {
+    return loadRepoConfig(configPath);
+  }
+
+  throw new ConfigurationError(
+    "No repository configuration or auto-detection specified"
+  );
 }
 
 /**
  * Runs validation in single repository mode
  */
-
 async function runSingleRepoValidation(options: {
   rootDir: string;
   outputPath?: string;
   verbose: boolean;
-}) {
+}): Promise<number> {
   const { rootDir, outputPath, verbose } = options;
 
-  // Ensure the directory exists
-  if (!fs.existsSync(rootDir)) {
-    console.error(`Directory not found: ${rootDir}`);
-    process.exit(1);
-  }
-
-  // Get absolute path to ensure proper resolution
-  const absoluteRootDir = path.resolve(rootDir);
-
-  if (verbose) {
-    // Make it clear if we're validating a specific subdirectory
-    const isSpecificDir =
-      absoluteRootDir !== process.cwd() &&
-      absoluteRootDir.startsWith(process.cwd());
-    if (isSpecificDir) {
-      console.log(
-        `Validating Azure Pipeline references in specific directory: ${absoluteRootDir}`
-      );
-    } else {
-      console.log(
-        `Validating Azure Pipeline references in: ${absoluteRootDir}`
-      );
-    }
-
-    if (outputPath) {
-      console.log(`Summary will be saved to ${outputPath}`);
-    }
-    console.log(`Node.js version: ${process.version}`);
-    console.log(`Working directory: ${process.cwd()}`);
-  }
-
   try {
+    // Validate directory exists and get absolute path
+    const absoluteRootDir = validateDirectory(rootDir);
+
+    // Log information in verbose mode
+    logVerboseInfo(options, absoluteRootDir);
+
+    // Run validation
     const result = validatePipelines(absoluteRootDir);
 
     // Save summary to file if output path is specified
     if (outputPath) {
-      const summaryText = generateSummaryText(result);
-      fs.writeFileSync(outputPath, summaryText);
-      console.log(`Summary saved to ${outputPath}`);
+      const formatter = FormatterFactory.createMarkdownFormatter({ verbose });
+      const summaryText = formatter.format(result);
+      saveOutputToFile(outputPath, summaryText);
     }
 
-    // Always show basic summary
-    const totalRefs =
-      result.validReferences.length + result.brokenReferences.length;
-    console.log("Azure Pipeline Validation Summary:");
-    console.log(`- Status: ${result.isValid ? "✅ PASSED" : "❌ FAILED"}`);
-    console.log(`- Total references: ${totalRefs}`);
-    console.log(`- Valid references: ${result.validReferences.length}`);
-    console.log(`- Broken references: ${result.brokenReferences.length}`);
-
-    // Always show details of broken references
-    if (result.brokenReferences.length > 0) {
-      console.log("\nBroken References:");
-      result.brokenReferences.forEach((ref, index) => {
-        const relativePath = path.relative(process.cwd(), ref.source);
-        console.log(`\n${index + 1}. ${relativePath} → ${ref.target}`);
-        console.log(`   Line: ${ref.lineNumber}`);
-        // Show context only in verbose mode
-        if (verbose) {
-          console.log(`   Context:\n${ref.context}`);
-        }
-      });
-    }
+    // Print result to console
+    const formatter = FormatterFactory.createConsoleFormatter({ verbose });
+    console.log(formatter.format(result));
 
     return result.isValid ? 0 : 1;
   } catch (error) {
-    console.error("Error validating pipeline references:", error);
-    return 1;
+    return handleError<number>(error, 1, (err: Error) => {
+      console.error("Error validating pipeline references:", err.message);
+    });
   }
 }
 
@@ -192,42 +282,38 @@ async function runRepositoriesValidation(options: {
   basePath: string;
   outputPath?: string;
   verbose: boolean;
-}) {
+}): Promise<number> {
   const { configPath, autoDetect, basePath, outputPath, verbose } = options;
   let repoConfigs: RepoConfig[] = [];
 
-  // Get repository configs from auto-detection or config file
-  if (autoDetect) {
-    try {
-      repoConfigs = autoDetectRepositories(basePath);
+  try {
+    // Get repository configurations
+    repoConfigs = getRepositoryConfigs({ configPath, autoDetect, basePath });
 
-      // Save detected repos to a config file if output path is specified
-      if (outputPath && repoConfigs.length > 0) {
-        const detectedConfigPath = path.join(
-          path.dirname(outputPath),
-          "detected-repos.json"
-        );
-        fs.writeFileSync(
-          detectedConfigPath,
-          JSON.stringify({ repositories: repoConfigs }, null, 2)
-        );
-        console.log(`Saved detected repositories to ${detectedConfigPath}`);
+    // Save detected repos to a config file if output path is specified
+    if (autoDetect && outputPath && repoConfigs.length > 0) {
+      const detectedConfigPath = path.join(
+        path.dirname(outputPath),
+        "detected-repos.json"
+      );
+
+      saveOutputToFile(
+        detectedConfigPath,
+        JSON.stringify({ repositories: repoConfigs }, null, 2)
+      );
+    }
+  } catch (error) {
+    return handleError<number>(error, 1, (err: Error) => {
+      if (err instanceof ConfigurationError) {
+        console.error("Configuration error:", err.message);
+      } else {
+        console.error("Error preparing for validation:", err.message);
       }
-    } catch (error) {
-      console.error("Error auto-detecting repositories:", error);
-      return 1;
-    }
-  } else if (configPath) {
-    try {
-      repoConfigs = loadRepoConfig(configPath);
-    } catch (error) {
-      console.error("Error loading repository configuration:", error);
-      return 1;
-    }
-  } else {
-    console.error("No repository configuration or auto-detection specified.");
-    program.help();
-    return 1;
+
+      if (!configPath && !autoDetect) {
+        program.help();
+      }
+    });
   }
 
   if (repoConfigs.length === 0) {
@@ -235,15 +321,8 @@ async function runRepositoriesValidation(options: {
     return 1;
   }
 
-  // Print info if verbose
-  if (verbose) {
-    console.log(`Validating ${repoConfigs.length} repositories:`);
-    repoConfigs.forEach((repo) => {
-      console.log(`- ${repo.name}: ${repo.path}`);
-    });
-    console.log(`Node.js version: ${process.version}`);
-    console.log(`Working directory: ${process.cwd()}`);
-  }
+  // Log repository information in verbose mode
+  logRepoInfo({ verbose }, repoConfigs);
 
   try {
     // Run validation
@@ -251,77 +330,20 @@ async function runRepositoriesValidation(options: {
 
     // Save summary to file if output path is specified
     if (outputPath) {
-      const summaryText = generateSummaryText(result, repoConfigs);
-      fs.writeFileSync(outputPath, summaryText);
-      console.log(`Summary saved to ${outputPath}`);
+      const formatter = FormatterFactory.createMarkdownFormatter({ verbose });
+      const summaryText = formatter.format(result, repoConfigs);
+      saveOutputToFile(outputPath, summaryText);
     }
 
-    // Always show basic summary
-    const totalRefs =
-      result.validReferences.length + result.brokenReferences.length;
-    const hasVersionIssues =
-      result.versionIssues && result.versionIssues.length > 0;
-
-    console.log("\nAzure Pipeline Multiple Repositories Validation Summary:");
-    console.log(`- Status: ${result.isValid ? "✅ PASSED" : "❌ FAILED"}`);
-    console.log(`- Repositories analyzed: ${repoConfigs.length}`);
-    console.log(
-      `- Total references: ${totalRefs}${
-        hasVersionIssues
-          ? ` + ${result.versionIssues!.length} version references`
-          : ""
-      }`
-    );
-    console.log(`- Valid references: ${result.validReferences.length}`);
-    console.log(`- Broken references: ${result.brokenReferences.length}`);
-    if (hasVersionIssues) {
-      console.log(`- Version issues: ${result.versionIssues!.length}`);
-    }
-
-    // Always show broken references details
-    if (result.brokenReferences.length > 0) {
-      console.log("\nBroken References:");
-      result.brokenReferences.forEach((ref, index) => {
-        const relativePath = path.relative(process.cwd(), ref.source);
-        const sourceRepo =
-          repoConfigs.find((r) => ref.source.startsWith(r.path))?.name ||
-          "unknown";
-        console.log(`\n${index + 1}. [${sourceRepo}] ${relativePath}`);
-        console.log(
-          `   Target: ${ref.target}${
-            ref.targetRepo ? ` (in repo ${ref.targetRepo})` : ""
-          }`
-        );
-        console.log(`   Line: ${ref.lineNumber}`);
-        // Show context only in verbose mode
-        if (verbose) {
-          console.log(`   Context:\n${ref.context}`);
-        }
-      });
-    }
-
-    // Always show version issues
-    if (hasVersionIssues) {
-      console.log("\nVersion Issues:");
-      result.versionIssues!.forEach((ref, index) => {
-        const relativePath = path.relative(process.cwd(), ref.source);
-        const sourceRepo =
-          repoConfigs.find((r) => ref.source.startsWith(r.path))?.name ||
-          "unknown";
-        console.log(`\n${index + 1}. [${sourceRepo}] ${relativePath}`);
-        console.log(`   Issue: ${ref.target}`);
-        console.log(`   Line: ${ref.lineNumber}`);
-        // Show context only in verbose mode
-        if (verbose) {
-          console.log(`   Context:\n${ref.context}`);
-        }
-      });
-    }
+    // Print result to console
+    const formatter = FormatterFactory.createConsoleFormatter({ verbose });
+    console.log(formatter.format(result, repoConfigs));
 
     return result.isValid ? 0 : 1;
   } catch (error) {
-    console.error("Error validating pipeline references:", error);
-    return 1;
+    return handleError<number>(error, 1, (err: Error) => {
+      console.error("Error validating pipeline references:", err.message);
+    });
   }
 }
 
@@ -373,7 +395,7 @@ function setupCommands() {
         (options.autoDetect === true && !userSpecifiedPath) || // Only use auto-detect in multi-repo mode if no specific path
         isConfigFile;
 
-      let exitCode;
+      let exitCode: number;
 
       if (isMultipleRepos) {
         // Configuration file path - either from argument or option
@@ -406,8 +428,6 @@ function setupCommands() {
       process.exit(exitCode);
     });
 
-  // No need for separate commands
-
   return program;
 }
 
@@ -421,8 +441,6 @@ async function main() {
 
 // Only run the main function when this module is executed directly (not imported in tests)
 // For ESM modules, use import.meta.url to check if this is the main module
-import * as url from "node:url";
-
 if (import.meta.url.startsWith("file:")) {
   const modulePath = url.fileURLToPath(import.meta.url);
   const mainPath = fs.realpathSync(process.argv[1] as PathLike);
@@ -434,114 +452,8 @@ if (import.meta.url.startsWith("file:")) {
   }
 }
 
-/**
- * Generates a markdown summary text for the validation result
- *
- * @param result - Validation result
- * @param repoConfigs - Optional repository configurations for multiple repositories
- * @returns Markdown formatted summary
- */
-function generateSummaryText(
-  result: ValidationResult,
-  repoConfigs?: RepoConfig[]
-): string {
-  let summary = "";
-  const hasMultipleRepos = !!repoConfigs && repoConfigs.length > 1;
-  const totalRefs =
-    result.validReferences.length + result.brokenReferences.length;
-  const hasVersionIssues =
-    result.versionIssues && result.versionIssues.length > 0;
-
-  // Title
-  if (hasMultipleRepos) {
-    summary += "# Azure Pipeline Multiple Repositories Validation Summary\n\n";
-  } else {
-    summary += "# Azure Pipeline Validation Summary\n\n";
-  }
-
-  // Status
-  if (result.isValid) {
-    summary += "✅ All pipeline references are valid.\n\n";
-  } else {
-    summary += `❌ Found ${result.brokenReferences.length} broken references${
-      hasVersionIssues
-        ? ` and ${result.versionIssues!.length} version issues`
-        : ""
-    }.\n\n`;
-  }
-
-  // Statistics
-  if (hasMultipleRepos) {
-    summary += `Repositories analyzed: ${repoConfigs!.length}\n`;
-  }
-
-  summary += `Total references: ${totalRefs}${
-    hasVersionIssues
-      ? ` + ${result.versionIssues!.length} version references`
-      : ""
-  }\n`;
-  summary += `Valid references: ${result.validReferences.length}\n`;
-  summary += `Broken references: ${result.brokenReferences.length}\n`;
-
-  if (hasVersionIssues) {
-    summary += `Version issues: ${result.versionIssues!.length}\n`;
-  }
-
-  summary += "\n";
-
-  // Broken references details
-  if (result.brokenReferences.length > 0) {
-    summary += "## Broken References\n\n";
-
-    result.brokenReferences.forEach((ref, index) => {
-      const relativePath = path.relative(process.cwd(), ref.source);
-
-      if (hasMultipleRepos) {
-        const sourceRepo =
-          repoConfigs!.find((r) => ref.source.startsWith(r.path))?.name ||
-          "unknown";
-        summary += `### ${index + 1}. [${sourceRepo}] ${relativePath}\n\n`;
-        summary += `- Target: ${ref.target}${
-          ref.targetRepo ? ` (in repo ${ref.targetRepo})` : ""
-        }\n`;
-      } else {
-        summary += `### ${index + 1}. ${relativePath} → ${ref.target}\n\n`;
-      }
-
-      summary += `- Line: ${ref.lineNumber}\n`;
-      summary += `- Context:\n\`\`\`yaml\n${ref.context}\n\`\`\`\n\n`;
-    });
-  }
-
-  // Version issues details
-  if (hasVersionIssues) {
-    summary += "## Version Issues\n\n";
-
-    result.versionIssues!.forEach((ref, index) => {
-      const relativePath = path.relative(process.cwd(), ref.source);
-
-      if (hasMultipleRepos) {
-        const sourceRepo =
-          repoConfigs!.find((r) => ref.source.startsWith(r.path))?.name ||
-          "unknown";
-        summary += `### ${index + 1}. [${sourceRepo}] ${relativePath}\n\n`;
-      } else {
-        summary += `### ${index + 1}. ${relativePath}\n\n`;
-      }
-
-      summary += `- Issue: ${ref.target}\n`;
-      summary += `- Line: ${ref.lineNumber}\n`;
-      summary += `- Context:\n\`\`\`yaml\n${ref.context}\n\`\`\`\n\n`;
-    });
-  }
-
-  return summary;
-}
-
 // Export for testing
-export {
-  setupCommands,
-  autoDetectRepositories,
-  loadRepoConfig,
-  generateSummaryText,
-};
+export { setupCommands, autoDetectRepositories, loadRepoConfig };
+
+// Re-export formatters for testing
+export { FormatterFactory };

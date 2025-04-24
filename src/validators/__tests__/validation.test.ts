@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
   type PipelineReference,
@@ -12,10 +11,16 @@ import {
 } from "#validators/validation";
 
 // Mock dependencies
-vi.mock("fs", () => ({
-  default: {
-    existsSync: vi.fn(),
-  },
+vi.mock("#utils/filesystem", () => ({
+  fileExists: vi.fn(),
+  joinPaths: vi.fn((...paths) => paths.join("/")),
+  dirname: vi.fn((path) => path.split("/").slice(0, -1).join("/")),
+  getFileSystem: vi.fn(),
+}));
+
+// Mock file utils
+vi.mock("#utils/file", () => ({
+  fileExists: vi.fn().mockReturnValue(true),
 }));
 
 // Mock git utils
@@ -33,6 +38,8 @@ vi.mock("#validators/references", () => ({
 // Import mocked modules
 import { validateFileAtVersion, validateRepoVersion } from "#utils/git";
 import { collectAllReferences } from "#validators/references";
+import { fileExists } from "#utils/filesystem";
+import { fileExists as fileUtilsFileExists } from "#utils/file";
 
 describe("Validation Module", () => {
   beforeEach(() => {
@@ -42,7 +49,7 @@ describe("Validation Module", () => {
   describe("validateExternalReference", () => {
     test("should validate a valid external reference", () => {
       // Setup mocks
-      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fileExists).mockReturnValue(true);
 
       const reference: PipelineReference = {
         source: "/path/to/source.yml",
@@ -192,7 +199,7 @@ describe("Validation Module", () => {
       // Setup mocks
       vi.mocked(validateRepoVersion).mockReturnValue(true);
       vi.mocked(validateFileAtVersion).mockReturnValue(false);
-      vi.mocked(fs.existsSync).mockReturnValue(false);
+      vi.mocked(fileExists).mockReturnValue(false);
 
       const reference: PipelineReference = {
         source: "/path/to/source.yml",
@@ -232,7 +239,8 @@ describe("Validation Module", () => {
   describe("validateLocalReference", () => {
     test("should validate a valid local reference", () => {
       // Setup mocks
-      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fileExists).mockReturnValue(true);
+      vi.mocked(fileUtilsFileExists).mockReturnValue(true);
 
       const reference: PipelineReference = {
         source: "/path/to/source.yml",
@@ -253,7 +261,8 @@ describe("Validation Module", () => {
 
     test("should detect missing files", () => {
       // Setup mocks
-      vi.mocked(fs.existsSync).mockReturnValue(false);
+      vi.mocked(fileExists).mockReturnValue(false);
+      vi.mocked(fileUtilsFileExists).mockReturnValue(false);
 
       const reference: PipelineReference = {
         source: "/path/to/source.yml",
@@ -276,7 +285,8 @@ describe("Validation Module", () => {
   describe("validateReference", () => {
     test("should route to validateLocalReference for local references", () => {
       // Setup mocks
-      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fileExists).mockReturnValue(true);
+      vi.mocked(fileUtilsFileExists).mockReturnValue(true);
 
       const reference: PipelineReference = {
         source: "/path/to/source.yml",
@@ -305,7 +315,8 @@ describe("Validation Module", () => {
 
     test("should route to validateExternalReference for external references", () => {
       // Setup mocks
-      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fileExists).mockReturnValue(true);
+      vi.mocked(fileUtilsFileExists).mockReturnValue(true);
 
       const reference: PipelineReference = {
         source: "/path/to/source.yml",
@@ -338,7 +349,10 @@ describe("Validation Module", () => {
 
     test("should handle unexpected errors during validation", () => {
       // Setup mocks to throw an error
-      vi.mocked(fs.existsSync).mockImplementation(() => {
+      vi.mocked(fileExists).mockImplementation(() => {
+        throw new Error("Unexpected error");
+      });
+      vi.mocked(fileUtilsFileExists).mockImplementation(() => {
         throw new Error("Unexpected error");
       });
 
@@ -383,7 +397,8 @@ describe("Validation Module", () => {
           context: "template: template.yml",
         },
       ]);
-      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fileExists).mockReturnValue(true);
+      vi.mocked(fileUtilsFileExists).mockReturnValue(true);
 
       const result = validatePipelines("/path/to/repo");
 
@@ -404,7 +419,8 @@ describe("Validation Module", () => {
           context: "template: template.yml@repo2",
         },
       ]);
-      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fileExists).mockReturnValue(true);
+      vi.mocked(fileUtilsFileExists).mockReturnValue(true);
 
       const repoConfigs = [
         { name: "repo1", path: "/path/to/repo1", aliases: [] },
@@ -437,7 +453,7 @@ describe("Validation Module", () => {
       expect(result.validReferences).toHaveLength(1);
       expect(result.brokenReferences).toHaveLength(0);
       // The repository reference should be automatically marked as valid
-      expect(fs.existsSync).not.toHaveBeenCalled();
+      expect(fileExists).not.toHaveBeenCalled();
     });
   });
 });

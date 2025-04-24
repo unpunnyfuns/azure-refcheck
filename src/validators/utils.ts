@@ -1,7 +1,6 @@
 import { execSync } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
 import type { RepoConfig } from "#config";
+import { getFileSystem, joinPaths, dirname } from "#utils/filesystem";
 
 /**
  * Extracts the line number for a regex match in text
@@ -86,11 +85,9 @@ export function resolveTargetPath(
     if (repoConfig?.path) {
       // If target path is absolute (from repo root), or repo-relative
       if (targetPath.startsWith("/")) {
-        return path.normalize(
-          path.join(repoConfig.path, targetPath.substring(1))
-        );
+        return joinPaths(repoConfig.path, targetPath.substring(1));
       }
-      return path.normalize(path.join(repoConfig.path, targetPath));
+      return joinPaths(repoConfig.path, targetPath);
     }
 
     // If repo not found, return original for error reporting
@@ -101,8 +98,8 @@ export function resolveTargetPath(
   if (targetPath.startsWith("/")) {
     // Try to determine repository root - use a safer path resolution approach
     try {
-      // Use path module to safely handle directory names that might contain special characters
-      const sourceDir = path.dirname(sourcePath);
+      // Get the source directory
+      const sourceDir = dirname(sourcePath);
 
       // Use git -C for correct directory context
       const repoRoot = execSync(
@@ -113,7 +110,7 @@ export function resolveTargetPath(
         }
       ).trim();
 
-      return path.normalize(path.join(repoRoot, targetPath.substring(1)));
+      return joinPaths(repoRoot, targetPath.substring(1));
     } catch (error) {
       // Log the error with better context
       if (process.env.NODE_ENV !== "test") {
@@ -122,10 +119,10 @@ export function resolveTargetPath(
         );
       }
       // Fallback to current working directory
-      return path.normalize(path.join(process.cwd(), targetPath));
+      return joinPaths(process.cwd(), targetPath);
     }
   }
 
   // Relative path to source file
-  return path.normalize(path.join(path.dirname(sourcePath), targetPath));
+  return joinPaths(dirname(sourcePath), targetPath);
 }

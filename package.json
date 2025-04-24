@@ -5,11 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": [
-    "dist",
-    "README.md",
-    "bin"
-  ],
+  "files": ["dist", "README.md", "bin"],
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -48,6 +44,18 @@
     "#cli": {
       "development": "./src/cli.ts",
       "default": "./dist/cli.js"
+    },
+    "#errors": {
+      "development": "./src/errors.ts",
+      "default": "./dist/errors.js"
+    },
+    "#formatters/output": {
+      "development": "./src/formatters/output.ts",
+      "default": "./dist/formatters/output.js"
+    },
+    "#filesystem": {
+      "development": "./src/utils/filesystem.ts",
+      "default": "./dist/utils/filesystem.js"
     }
   },
   "scripts": {
@@ -66,7 +74,7 @@
     "check": "biome check --write .",
     "check:unsafe": "biome check --write --unsafe .",
     "ci": "npm run lint && npm run test:run && npm run build",
-    "quality": "npm run lint -- --error-on-warnings && npm run test:run && npm run build",
+    "quality": "npm run lint -- --error-on-warnings && npm run test:run && npm run build && npm run validate",
     "validate": "bash ./test-fixtures/run-validation-check.sh"
   },
   "bin": {

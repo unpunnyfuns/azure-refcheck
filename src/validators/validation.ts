@@ -1,7 +1,4 @@
-import fs from "node:fs";
-import path from "node:path";
 import type { RepoConfig } from "#config";
-import { fileExists } from "#utils/file";
 import { validateFileAtVersion, validateRepoVersion } from "#utils/git";
 import { parseVersionReference } from "#validators/parsers";
 import {
@@ -14,6 +11,7 @@ import {
   type ValidationResult,
 } from "#validators/types";
 import { findRepoConfig, resolveTargetPath } from "#validators/utils";
+import { fileExists, joinPaths } from "#utils/filesystem";
 
 /**
  * Validates a reference to a template in an external repository
@@ -69,7 +67,7 @@ export function validateExternalReference(
   }
 
   // Resolve the file path within the target repository
-  const resolvedPath = path.join(
+  const resolvedPath = joinPaths(
     targetRepoConfig.path,
     reference.target.startsWith("/")
       ? reference.target.substring(1)
@@ -77,7 +75,7 @@ export function validateExternalReference(
   );
 
   // First check if the file exists directly in the filesystem (latest version)
-  if (fs.existsSync(resolvedPath) && !reference.targetVersion) {
+  if (fileExists(resolvedPath) && !reference.targetVersion) {
     validReferences.push(reference);
     return ReferenceValidationResult.VALID;
   }

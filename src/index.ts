@@ -29,5 +29,5 @@ export {
   validateFileAtVersion,
 } from "#utils/git";
 
-// Export CLI utilities for summary generation
-export { generateSummaryText } from "./cli.js";
+// Export formatters for output generation
+export { FormatterFactory } from "#formatters/output";

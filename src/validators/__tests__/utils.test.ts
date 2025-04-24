@@ -1,5 +1,4 @@
 import { execSync } from "node:child_process";
-import fs from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
@@ -12,6 +11,13 @@ import {
 // Mock child_process to avoid actual git commands
 vi.mock("node:child_process", () => ({
   execSync: vi.fn(),
+}));
+
+// Mock filesystem
+vi.mock("#utils/filesystem", () => ({
+  joinPaths: vi.fn((...paths) => path.join(...paths)),
+  dirname: vi.fn((filePath) => path.dirname(filePath)),
+  getFileSystem: vi.fn(),
 }));
 
 describe("Validator Utils", () => {
