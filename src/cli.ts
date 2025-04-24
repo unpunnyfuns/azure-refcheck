@@ -1,13 +1,10 @@
 #!/usr/bin/env node
 
-import fs from "node:fs";
+import fs, { type PathLike } from "node:fs";
 import path from "node:path";
 import { Command } from "commander";
+import { type ValidationResult, validatePipelines } from "#validator";
 import type { RepoConfig } from "./config.js";
-import { 
-  validatePipelines,
-  type ValidationResult 
-} from "#validator";
 
 // Setup version from package.json
 const packageJson = JSON.parse(
@@ -70,12 +67,14 @@ function loadRepoConfig(configPath: string): RepoConfig[] {
 
     const configContent = fs.readFileSync(configPath, "utf-8");
     const config = JSON.parse(configContent);
-    
+
     // Expect a standard format with a repositories array
     const repos = config.repositories;
-    
+
     if (!Array.isArray(repos)) {
-      throw new Error("Invalid configuration format: expected a { repositories: [] } object");
+      throw new Error(
+        "Invalid configuration format: expected a { repositories: [] } object"
+      );
     }
 
     // Validate each repository configuration
@@ -106,7 +105,6 @@ function loadRepoConfig(configPath: string): RepoConfig[] {
  * Runs validation in single repository mode
  */
 
-
 async function runSingleRepoValidation(options: {
   rootDir: string;
   outputPath?: string;
@@ -122,16 +120,22 @@ async function runSingleRepoValidation(options: {
 
   // Get absolute path to ensure proper resolution
   const absoluteRootDir = path.resolve(rootDir);
-  
+
   if (verbose) {
     // Make it clear if we're validating a specific subdirectory
-    const isSpecificDir = absoluteRootDir !== process.cwd() && absoluteRootDir.startsWith(process.cwd());
+    const isSpecificDir =
+      absoluteRootDir !== process.cwd() &&
+      absoluteRootDir.startsWith(process.cwd());
     if (isSpecificDir) {
-      console.log(`Validating Azure Pipeline references in specific directory: ${absoluteRootDir}`);
+      console.log(
+        `Validating Azure Pipeline references in specific directory: ${absoluteRootDir}`
+      );
     } else {
-      console.log(`Validating Azure Pipeline references in: ${absoluteRootDir}`);
+      console.log(
+        `Validating Azure Pipeline references in: ${absoluteRootDir}`
+      );
     }
-    
+
     if (outputPath) {
       console.log(`Summary will be saved to ${outputPath}`);
     }
@@ -149,9 +153,9 @@ async function runSingleRepoValidation(options: {
       console.log(`Summary saved to ${outputPath}`);
     }
 
-
     // Always show basic summary
-    const totalRefs = result.validReferences.length + result.brokenReferences.length;
+    const totalRefs =
+      result.validReferences.length + result.brokenReferences.length;
     console.log("Azure Pipeline Validation Summary:");
     console.log(`- Status: ${result.isValid ? "✅ PASSED" : "❌ FAILED"}`);
     console.log(`- Total references: ${totalRefs}`);
@@ -199,7 +203,10 @@ async function runRepositoriesValidation(options: {
 
       // Save detected repos to a config file if output path is specified
       if (outputPath && repoConfigs.length > 0) {
-        const detectedConfigPath = path.join(path.dirname(outputPath), "detected-repos.json");
+        const detectedConfigPath = path.join(
+          path.dirname(outputPath),
+          "detected-repos.json"
+        );
         fs.writeFileSync(
           detectedConfigPath,
           JSON.stringify({ repositories: repoConfigs }, null, 2)
@@ -249,16 +256,21 @@ async function runRepositoriesValidation(options: {
       console.log(`Summary saved to ${outputPath}`);
     }
 
-
     // Always show basic summary
-    const totalRefs = result.validReferences.length + result.brokenReferences.length;
-    const hasVersionIssues = result.versionIssues && result.versionIssues.length > 0;
+    const totalRefs =
+      result.validReferences.length + result.brokenReferences.length;
+    const hasVersionIssues =
+      result.versionIssues && result.versionIssues.length > 0;
 
     console.log("\nAzure Pipeline Multiple Repositories Validation Summary:");
     console.log(`- Status: ${result.isValid ? "✅ PASSED" : "❌ FAILED"}`);
     console.log(`- Repositories analyzed: ${repoConfigs.length}`);
     console.log(
-      `- Total references: ${totalRefs}${hasVersionIssues ? ` + ${result.versionIssues!.length} version references` : ""}`
+      `- Total references: ${totalRefs}${
+        hasVersionIssues
+          ? ` + ${result.versionIssues!.length} version references`
+          : ""
+      }`
     );
     console.log(`- Valid references: ${result.validReferences.length}`);
     console.log(`- Broken references: ${result.brokenReferences.length}`);
@@ -272,10 +284,13 @@ async function runRepositoriesValidation(options: {
       result.brokenReferences.forEach((ref, index) => {
         const relativePath = path.relative(process.cwd(), ref.source);
         const sourceRepo =
-          repoConfigs.find((r) => ref.source.startsWith(r.path))?.name || "unknown";
+          repoConfigs.find((r) => ref.source.startsWith(r.path))?.name ||
+          "unknown";
         console.log(`\n${index + 1}. [${sourceRepo}] ${relativePath}`);
         console.log(
-          `   Target: ${ref.target}${ref.targetRepo ? ` (in repo ${ref.targetRepo})` : ""}`
+          `   Target: ${ref.target}${
+            ref.targetRepo ? ` (in repo ${ref.targetRepo})` : ""
+          }`
         );
         console.log(`   Line: ${ref.lineNumber}`);
         // Show context only in verbose mode
@@ -291,7 +306,8 @@ async function runRepositoriesValidation(options: {
       result.versionIssues!.forEach((ref, index) => {
         const relativePath = path.relative(process.cwd(), ref.source);
         const sourceRepo =
-          repoConfigs.find((r) => ref.source.startsWith(r.path))?.name || "unknown";
+          repoConfigs.find((r) => ref.source.startsWith(r.path))?.name ||
+          "unknown";
         console.log(`\n${index + 1}. [${sourceRepo}] ${relativePath}`);
         console.log(`   Issue: ${ref.target}`);
         console.log(`   Line: ${ref.lineNumber}`);
@@ -322,18 +338,33 @@ function setupCommands() {
 
   // Unified command for both single repo and multiple repos
   program
-    .argument("[path]", "Directory to validate (or path to config.json file)", process.cwd())
-    .option("-o, --output <path>", "Path to save the validation summary as markdown")
+    .argument(
+      "[path]",
+      "Directory to validate (or path to config.json file)",
+      process.cwd()
+    )
+    .option(
+      "-o, --output <path>",
+      "Path to save the validation summary as markdown"
+    )
     .option("-v, --verbose", "Enable verbose output", false)
     .option("-c, --config <path>", "Path to multi-repo configuration JSON file")
-    .option("-a, --auto-detect", "Enable multi-repo mode: auto-detect Git repositories in the specified directory", false)
-    .option("-b, --base-path <path>", "Base path for multi-repo auto-detection (only used with --auto-detect)", process.cwd())
+    .option(
+      "-a, --auto-detect",
+      "Enable multi-repo mode: auto-detect Git repositories in the specified directory",
+      false
+    )
+    .option(
+      "-b, --base-path <path>",
+      "Base path for multi-repo auto-detection (only used with --auto-detect)",
+      process.cwd()
+    )
     .action(async (pathArg, options) => {
       // If a specific path is provided (not the default cwd), and it's not a config file,
       // then we should validate just that path directly, even with auto-detect
       const userSpecifiedPath = pathArg !== process.cwd();
       const isConfigFile = pathArg.endsWith(".json") && fs.existsSync(pathArg);
-      
+
       // Determine if we're in multiple repositories mode, but only if:
       // 1. User explicitly used --config or --auto-detect options
       // 2. Path is a JSON file (config)
@@ -350,10 +381,12 @@ function setupCommands() {
         const configPath = options.config || configFile;
 
         // When auto-detecting repos, we need to be explicit about which path to use
-        const autoDetectBasePath = options.basePath ? path.resolve(options.basePath) : 
-                                   userSpecifiedPath ? path.resolve(pathArg) : 
-                                   process.cwd();
-        
+        const autoDetectBasePath = options.basePath
+          ? path.resolve(options.basePath)
+          : userSpecifiedPath
+            ? path.resolve(pathArg)
+            : process.cwd();
+
         exitCode = await runRepositoriesValidation({
           configPath: configPath ? path.resolve(configPath) : undefined,
           autoDetect: options.autoDetect,
@@ -392,7 +425,8 @@ import * as url from "node:url";
 
 if (import.meta.url.startsWith("file:")) {
   const modulePath = url.fileURLToPath(import.meta.url);
-  if (process.argv[1] === modulePath) {
+  const mainPath = fs.realpathSync(process.argv[1] as PathLike);
+  if (mainPath === modulePath) {
     main().catch((error) => {
       console.error("Unhandled error:", error);
       process.exit(1);
@@ -407,11 +441,16 @@ if (import.meta.url.startsWith("file:")) {
  * @param repoConfigs - Optional repository configurations for multiple repositories
  * @returns Markdown formatted summary
  */
-function generateSummaryText(result: ValidationResult, repoConfigs?: RepoConfig[]): string {
+function generateSummaryText(
+  result: ValidationResult,
+  repoConfigs?: RepoConfig[]
+): string {
   let summary = "";
   const hasMultipleRepos = !!repoConfigs && repoConfigs.length > 1;
-  const totalRefs = result.validReferences.length + result.brokenReferences.length;
-  const hasVersionIssues = result.versionIssues && result.versionIssues.length > 0;
+  const totalRefs =
+    result.validReferences.length + result.brokenReferences.length;
+  const hasVersionIssues =
+    result.versionIssues && result.versionIssues.length > 0;
 
   // Title
   if (hasMultipleRepos) {
@@ -425,7 +464,9 @@ function generateSummaryText(result: ValidationResult, repoConfigs?: RepoConfig[
     summary += "✅ All pipeline references are valid.\n\n";
   } else {
     summary += `❌ Found ${result.brokenReferences.length} broken references${
-      hasVersionIssues ? ` and ${result.versionIssues!.length} version issues` : ""
+      hasVersionIssues
+        ? ` and ${result.versionIssues!.length} version issues`
+        : ""
     }.\n\n`;
   }
 
@@ -435,7 +476,9 @@ function generateSummaryText(result: ValidationResult, repoConfigs?: RepoConfig[
   }
 
   summary += `Total references: ${totalRefs}${
-    hasVersionIssues ? ` + ${result.versionIssues!.length} version references` : ""
+    hasVersionIssues
+      ? ` + ${result.versionIssues!.length} version references`
+      : ""
   }\n`;
   summary += `Valid references: ${result.validReferences.length}\n`;
   summary += `Broken references: ${result.brokenReferences.length}\n`;
@@ -455,9 +498,12 @@ function generateSummaryText(result: ValidationResult, repoConfigs?: RepoConfig[
 
       if (hasMultipleRepos) {
         const sourceRepo =
-          repoConfigs!.find((r) => ref.source.startsWith(r.path))?.name || "unknown";
+          repoConfigs!.find((r) => ref.source.startsWith(r.path))?.name ||
+          "unknown";
         summary += `### ${index + 1}. [${sourceRepo}] ${relativePath}\n\n`;
-        summary += `- Target: ${ref.target}${ref.targetRepo ? ` (in repo ${ref.targetRepo})` : ""}\n`;
+        summary += `- Target: ${ref.target}${
+          ref.targetRepo ? ` (in repo ${ref.targetRepo})` : ""
+        }\n`;
       } else {
         summary += `### ${index + 1}. ${relativePath} → ${ref.target}\n\n`;
       }
@@ -476,7 +522,8 @@ function generateSummaryText(result: ValidationResult, repoConfigs?: RepoConfig[
 
       if (hasMultipleRepos) {
         const sourceRepo =
-          repoConfigs!.find((r) => ref.source.startsWith(r.path))?.name || "unknown";
+          repoConfigs!.find((r) => ref.source.startsWith(r.path))?.name ||
+          "unknown";
         summary += `### ${index + 1}. [${sourceRepo}] ${relativePath}\n\n`;
       } else {
         summary += `### ${index + 1}. ${relativePath}\n\n`;
@@ -492,4 +539,9 @@ function generateSummaryText(result: ValidationResult, repoConfigs?: RepoConfig[
 }
 
 // Export for testing
-export { setupCommands, autoDetectRepositories, loadRepoConfig, generateSummaryText };
+export {
+  setupCommands,
+  autoDetectRepositories,
+  loadRepoConfig,
+  generateSummaryText,
+};

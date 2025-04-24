@@ -8,29 +8,25 @@ import { glob } from "glob";
 export function findPipelineFiles(rootDir: string): string[] {
   // If user specifies a specific directory path, respect that exactly
   // Only use global ignores like node_modules that should always be excluded
-  
+
   const isExplicitPath = path.isAbsolute(rootDir) && process.cwd() !== rootDir;
-  
+
   // Base ignore patterns (always ignore these)
-  const ignorePatterns = [
-    "**/node_modules/**", 
-    "**/bin/**", 
-    "**/obj/**"
-  ];
-  
+  const ignorePatterns = ["**/node_modules/**", "**/bin/**", "**/obj/**"];
+
   // If we're not in an explicit path (we're at project root), also ignore test-fixtures
   // This prevents accidentally scanning test fixtures when running from project root
   if (!isExplicitPath) {
     // Only ignore test-fixtures when running from project root
     ignorePatterns.push("**/test-fixtures/**");
   }
-  
+
   const options = {
     cwd: rootDir,
     ignore: ignorePatterns,
     absolute: true,
   };
-  
+
   const yamlFiles = glob.sync("**/*.{yaml,yml}", options);
   return yamlFiles;
 }

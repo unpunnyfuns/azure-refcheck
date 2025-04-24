@@ -1,7 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { fileExists, findPipelineFiles, readFileContent, writeFile } from "#utils/file";
+import {
+  fileExists,
+  findPipelineFiles,
+  readFileContent,
+  writeFile,
+} from "#utils/file";
 
 // Import glob before mock so we can spy on it
 import * as globModule from "glob";
@@ -125,7 +130,10 @@ describe("file-utils", () => {
       const result = readFileContent("/path/to/file.yml");
 
       expect(result).toBe(mockContent);
-      expect(fs.readFileSync).toHaveBeenCalledWith("/path/to/file.yml", "utf-8");
+      expect(fs.readFileSync).toHaveBeenCalledWith(
+        "/path/to/file.yml",
+        "utf-8"
+      );
     });
 
     test("should return empty string if an error occurs", () => {
@@ -151,7 +159,10 @@ describe("file-utils", () => {
       const result = writeFile("/path/to/file.yml", "Content");
 
       expect(result).toBe(true);
-      expect(fs.writeFileSync).toHaveBeenCalledWith("/path/to/file.yml", "Content");
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        "/path/to/file.yml",
+        "Content"
+      );
     });
 
     test("should create directory if it does not exist", () => {
@@ -164,8 +175,13 @@ describe("file-utils", () => {
       const result = writeFile("/path/to/file.yml", "Content");
 
       expect(result).toBe(true);
-      expect(fs.mkdirSync).toHaveBeenCalledWith("/path/to", { recursive: true });
-      expect(fs.writeFileSync).toHaveBeenCalledWith("/path/to/file.yml", "Content");
+      expect(fs.mkdirSync).toHaveBeenCalledWith("/path/to", {
+        recursive: true,
+      });
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        "/path/to/file.yml",
+        "Content"
+      );
     });
 
     test("should return false if an error occurs", () => {

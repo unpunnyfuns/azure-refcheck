@@ -12,7 +12,7 @@ export { validatePipelines } from "#validator";
 // Re-export types
 export type {
   PipelineReference,
-  ValidationResult
+  ValidationResult,
 } from "#validator";
 export type { RepoConfig } from "#config";
 

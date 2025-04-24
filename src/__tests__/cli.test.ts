@@ -13,10 +13,11 @@ vi.mock("fs", () => ({
       }
       return '{"repositories":[]}';
     }),
+    realpathSync: vi.fn().mockReturnValue(""),
     writeFileSync: vi.fn(),
     existsSync: vi.fn().mockReturnValue(true),
     readdirSync: vi.fn().mockReturnValue([]),
-  },
+  }
 }));
 
 vi.mock("commander", () => {
@@ -40,10 +41,28 @@ vi.mock("commander", () => {
 });
 
 vi.mock("#validator", () => ({
-  validatePipelines: vi
-    .fn()
-    .mockReturnValue({ isValid: true, validReferences: [], brokenReferences: [] }),
+  validatePipelines: vi.fn().mockReturnValue({
+    isValid: true,
+    validReferences: [],
+    brokenReferences: [],
+  }),
 }));
+
+// Helper functions for creating test-specific mocks
+// Note: These are defined AFTER the vi.mock calls because vi.mock is hoisted
+const createBaseFsMock = (overrides = {}) => ({
+  readFileSync: vi.fn().mockImplementation((path) => {
+    if (path instanceof URL && path.toString().includes("package.json")) {
+      return '{"version":"1.0.0"}';
+    }
+    return '{"repositories":[]}';
+  }),
+  realpathSync: vi.fn().mockReturnValue(""),
+  writeFileSync: vi.fn(),
+  existsSync: vi.fn().mockReturnValue(true),
+  readdirSync: vi.fn().mockReturnValue([]),
+  ...overrides,
+});
 
 // Mock process.exit
 const originalExit = process.exit;
@@ -92,13 +111,14 @@ describe("CLI Module Tests", () => {
     // Reset modules to clear imports
     vi.resetModules();
 
-    // Setup our mock for this specific test
-    const fsMock = {
-      existsSync: vi.fn().mockReturnValue(true),
-      readFileSync: vi
-        .fn()
-        .mockReturnValue(JSON.stringify({ repositories: [{ name: "test-repo", path: "./test" }] })),
-    };
+    // Create a customized mock for this test using the base mock
+    const fsMock = createBaseFsMock({
+      readFileSync: vi.fn().mockReturnValue(
+        JSON.stringify({
+          repositories: [{ name: "test-repo", path: "./test" }],
+        })
+      ),
+    });
 
     vi.doMock("fs", () => ({ default: fsMock }));
 
@@ -115,11 +135,10 @@ describe("CLI Module Tests", () => {
     // Reset modules to clear imports
     vi.resetModules();
 
-    // Setup our mock for this specific test
-    const fsMock = {
-      existsSync: vi.fn().mockReturnValue(true),
+    // Create a customized mock for this test using the base mock
+    const fsMock = createBaseFsMock({
       readFileSync: vi.fn().mockReturnValue('{"repositories": "not-an-array"}'),
-    };
+    });
 
     vi.doMock("fs", () => ({ default: fsMock }));
 
@@ -199,7 +218,11 @@ describe("CLI Module Tests", () => {
 
       const repoConfigs: RepoConfig[] = [
         { name: "main-repo", path: "/test/cwd/main-repo", aliases: [] },
-        { name: "template-repo", path: "/test/cwd/template-repo", aliases: ["templates"] },
+        {
+          name: "template-repo",
+          path: "/test/cwd/template-repo",
+          aliases: ["templates"],
+        },
       ];
 
       const brokenRef: PipelineReference = {
@@ -229,8 +252,12 @@ describe("CLI Module Tests", () => {
 
       const summary = generateSummaryText(result, repoConfigs);
 
-      expect(summary).toContain("# Azure Pipeline Multiple Repositories Validation Summary");
-      expect(summary).toContain("❌ Found 1 broken references and 1 version issues");
+      expect(summary).toContain(
+        "# Azure Pipeline Multiple Repositories Validation Summary"
+      );
+      expect(summary).toContain(
+        "❌ Found 1 broken references and 1 version issues"
+      );
       expect(summary).toContain("Repositories analyzed: 2");
       expect(summary).toContain("Total references: 1 + 1 version references");
       expect(summary).toContain("Version issues: 1");
@@ -238,12 +265,16 @@ describe("CLI Module Tests", () => {
       // Broken references section
       expect(summary).toContain("## Broken References");
       expect(summary).toContain("### 1. [main-repo] main-repo/pipeline.yml");
-      expect(summary).toContain("- Target: missing.yml (in repo template-repo)");
+      expect(summary).toContain(
+        "- Target: missing.yml (in repo template-repo)"
+      );
 
       // Version issues section
       expect(summary).toContain("## Version Issues");
       expect(summary).toContain("### 1. [main-repo] main-repo/pipeline.yml");
-      expect(summary).toContain("- Issue: Invalid version v1.0.0 in repo template-repo");
+      expect(summary).toContain(
+        "- Issue: Invalid version v1.0.0 in repo template-repo"
+      );
     });
   });
 });

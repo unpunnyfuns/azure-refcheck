@@ -1,10 +1,7 @@
 import yaml from "js-yaml";
-import type {
-  AzurePipelineRepository,
-  AzurePipelineYaml,
-} from "#config";
+import type { AzurePipelineRepository, AzurePipelineYaml } from "#config";
 import type { PipelineReference } from "#validators/types";
-import { getLineNumberForMatch, getContextForMatch } from "#validators/utils";
+import { getContextForMatch, getLineNumberForMatch } from "#validators/utils";
 
 /**
  * Parse a version reference string to determine its type and normalized value
@@ -44,7 +41,10 @@ export function parseVersionReference(ref: string): {
  */
 export function extractRepositoryDeclarations(fileContent: string): {
   repos: Record<string, string>;
-  repoVersions: Record<string, { version?: string; versionType?: "tag" | "branch" | "commit" }>;
+  repoVersions: Record<
+    string,
+    { version?: string; versionType?: "tag" | "branch" | "commit" }
+  >;
 } {
   const repos: Record<string, string> = {};
   const repoVersions: Record<
@@ -55,7 +55,7 @@ export function extractRepositoryDeclarations(fileContent: string): {
   try {
     // Support multiple YAML documents in a single file
     const parsedDocuments = yaml.loadAll(fileContent) as AzurePipelineYaml[];
-    
+
     // Process each document
     for (const parsedContent of parsedDocuments) {
       if (parsedContent?.resources?.repositories) {

@@ -1,6 +1,6 @@
 import child_process from "node:child_process";
-import path from "node:path";
 import fs from "node:fs";
+import path from "node:path";
 
 /**
  * Get the Git repository root for a path
@@ -8,9 +8,12 @@ import fs from "node:fs";
 export function getRepositoryRoot(filePath: string): string {
   try {
     return child_process
-      .execSync(`git -C "${path.dirname(filePath)}" rev-parse --show-toplevel`, {
-        encoding: "utf-8",
-      })
+      .execSync(
+        `git -C "${path.dirname(filePath)}" rev-parse --show-toplevel`,
+        {
+          encoding: "utf-8",
+        }
+      )
       .trim();
   } catch (error) {
     console.error(`Error finding repository root: ${error}`);
@@ -48,7 +51,9 @@ export function validateRepoVersion(
         command = `git -C "${repoPath}" branch -a --list "*${version}*"`;
     }
 
-    const result = child_process.execSync(command, { encoding: "utf-8" }).trim();
+    const result = child_process
+      .execSync(command, { encoding: "utf-8" })
+      .trim();
     return result.length > 0;
   } catch (error) {
     console.error(`Error validating repository version: ${error}`);
@@ -117,9 +122,12 @@ export function validateFileAtVersion(
 
     if (!refSpec) return false;
 
-    child_process.execSync(`git -C "${repoPath}" cat-file -e ${refSpec}:${relPath}`, {
-      stdio: "pipe",
-    });
+    child_process.execSync(
+      `git -C "${repoPath}" cat-file -e ${refSpec}:${relPath}`,
+      {
+        stdio: "pipe",
+      }
+    );
     return true;
   } catch (error) {
     return false;
@@ -151,9 +159,12 @@ export function getFileContentAtVersion(
 
       // Check if local branch exists, otherwise try remote
       try {
-        child_process.execSync(`git -C "${repoPath}" show-ref --verify ${refSpec}`, {
-          stdio: "pipe",
-        });
+        child_process.execSync(
+          `git -C "${repoPath}" show-ref --verify ${refSpec}`,
+          {
+            stdio: "pipe",
+          }
+        );
       } catch (e) {
         refSpec = `refs/remotes/origin/${version}`;
       }
@@ -162,9 +173,12 @@ export function getFileContentAtVersion(
       refSpec = version;
     }
 
-    return child_process.execSync(`git -C "${repoPath}" show ${refSpec}:${relPath}`, {
-      encoding: "utf-8",
-    });
+    return child_process.execSync(
+      `git -C "${repoPath}" show ${refSpec}:${relPath}`,
+      {
+        encoding: "utf-8",
+      }
+    );
   } catch (error) {
     console.error(`Error getting file content at version: ${error}`);
     return null;

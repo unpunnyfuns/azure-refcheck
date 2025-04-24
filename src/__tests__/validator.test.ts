@@ -30,8 +30,12 @@ describe("validator", () => {
   describe("single repo mode", () => {
     test("should validate pipelines in a single repository", () => {
       // Setup mock files
-      vi.mocked(fileUtils.findPipelineFiles).mockReturnValue(["/repo/pipeline.yml"]);
-      vi.mocked(fileUtils.readFileContent).mockReturnValue("template: template.yml");
+      vi.mocked(fileUtils.findPipelineFiles).mockReturnValue([
+        "/repo/pipeline.yml",
+      ]);
+      vi.mocked(fileUtils.readFileContent).mockReturnValue(
+        "template: template.yml"
+      );
       vi.mocked(fileUtils.fileExists).mockReturnValue(true);
 
       const result = validatePipelines("/repo");
@@ -42,8 +46,12 @@ describe("validator", () => {
 
     test("should detect invalid pipeline references", () => {
       // Setup mock files
-      vi.mocked(fileUtils.findPipelineFiles).mockReturnValue(["/repo/pipeline.yml"]);
-      vi.mocked(fileUtils.readFileContent).mockReturnValue("template: missing-template.yml");
+      vi.mocked(fileUtils.findPipelineFiles).mockReturnValue([
+        "/repo/pipeline.yml",
+      ]);
+      vi.mocked(fileUtils.readFileContent).mockReturnValue(
+        "template: missing-template.yml"
+      );
       vi.mocked(fileUtils.fileExists).mockReturnValue(false);
 
       const result = validatePipelines("/repo");
@@ -62,16 +70,24 @@ describe("validator", () => {
       ];
 
       // Setup mock files
-      vi.mocked(fileUtils.findPipelineFiles).mockReturnValue(["/path/to/repo1/pipeline.yml"]);
-      vi.mocked(fileUtils.readFileContent).mockReturnValue("template: template.yml@repo2");
+      vi.mocked(fileUtils.findPipelineFiles).mockReturnValue([
+        "/path/to/repo1/pipeline.yml",
+      ]);
+      vi.mocked(fileUtils.readFileContent).mockReturnValue(
+        "template: template.yml@repo2"
+      );
       vi.mocked(fileUtils.fileExists).mockReturnValue(true);
       vi.mocked(gitUtils.validateFileAtVersion).mockReturnValue(true);
 
       const result = validatePipelines(repoConfigs);
 
       expect(result.isValid).toBe(true);
-      expect(fileUtils.findPipelineFiles).toHaveBeenCalledWith("/path/to/repo1");
-      expect(fileUtils.findPipelineFiles).toHaveBeenCalledWith("/path/to/repo2");
+      expect(fileUtils.findPipelineFiles).toHaveBeenCalledWith(
+        "/path/to/repo1"
+      );
+      expect(fileUtils.findPipelineFiles).toHaveBeenCalledWith(
+        "/path/to/repo2"
+      );
     });
 
     test("should detect invalid cross-repo references", () => {
@@ -82,8 +98,12 @@ describe("validator", () => {
       ];
 
       // Setup mock files with broken reference
-      vi.mocked(fileUtils.findPipelineFiles).mockReturnValue(["/path/to/repo1/pipeline.yml"]);
-      vi.mocked(fileUtils.readFileContent).mockReturnValue("template: missing-template.yml@repo2");
+      vi.mocked(fileUtils.findPipelineFiles).mockReturnValue([
+        "/path/to/repo1/pipeline.yml",
+      ]);
+      vi.mocked(fileUtils.readFileContent).mockReturnValue(
+        "template: missing-template.yml@repo2"
+      );
       vi.mocked(gitUtils.validateFileAtVersion).mockReturnValue(false);
 
       const result = validatePipelines(repoConfigs);

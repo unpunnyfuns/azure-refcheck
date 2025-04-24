@@ -1,6 +1,6 @@
 {
   "name": "@unpunnyfuns/azure-refcheck",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Azure Pipeline template reference validator - Checks template imports and extensions across repositories",
   "type": "module",
   "main": "dist/index.js",
@@ -49,8 +49,7 @@
   "scripts": {
     "clean": "rm -rf dist",
     "build": "npm run clean && tsc && cp dist/cli.js dist/cli.mjs && chmod +x dist/cli.mjs",
-    "prepublishOnly": "node scripts/prepare-package.js && npm run build",
-    "postpublish": "node scripts/restore-package.js",
+    "prepublishOnly": "npm run quality",
     "test": "cross-env NODE_ENV=test vitest",
     "test:watch": "cross-env NODE_ENV=test vitest --watch",
     "test:coverage": "cross-env NODE_ENV=test vitest run --coverage",
@@ -61,9 +60,8 @@
     "format:fix": "biome format --write .",
     "check": "biome check --write .",
     "check:unsafe": "biome check --write --unsafe .",
-    "prepare": "npm run build",
     "ci": "npm run lint && npm run test && npm run build",
-    "quality": "npm run check && npm run test && npm run build",
+    "quality": "npm run lint -- --error-on-warnings && npm run test && npm run build",
     "validate": "bash ./test-fixtures/run-validation-check.sh"
   },
   "bin": {
@@ -78,7 +76,18 @@
     "type": "git",
     "url": "https://github.com/unpunnyfuns/pipeline-validation.git"
   },
-  "keywords": ["azure", "pipeline", "devops", "yaml", "validation", "templates", "reference-checker", "azure-devops", "azure-pipelines", "ci-cd"],
+  "keywords": [
+    "azure",
+    "pipeline",
+    "devops",
+    "yaml",
+    "validation",
+    "templates",
+    "reference-checker",
+    "azure-devops",
+    "azure-pipelines",
+    "ci-cd"
+  ],
   "engines": {
     "node": ">=16.0.0"
   },

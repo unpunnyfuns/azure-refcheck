@@ -109,7 +109,9 @@ describe("git-utils", () => {
 
     test("should try different types if no type is specified", () => {
       // Setup mock for branch check (first attempt)
-      vi.mocked(child_process.execSync).mockImplementationOnce(() => "  main\n");
+      vi.mocked(child_process.execSync).mockImplementationOnce(
+        () => "  main\n"
+      );
 
       const result = validateRepoVersion("/path/to/repo", "main");
 
@@ -136,7 +138,11 @@ describe("git-utils", () => {
       });
       vi.spyOn(console, "error").mockImplementation(() => {});
 
-      const result = validateRepoVersion("/path/to/repo", "some-version", "tag");
+      const result = validateRepoVersion(
+        "/path/to/repo",
+        "some-version",
+        "tag"
+      );
 
       expect(result).toBe(false);
       expect(console.error).toHaveBeenCalled();
@@ -166,7 +172,12 @@ describe("git-utils", () => {
       // Setup mock (no error means file exists)
       vi.mocked(child_process.execSync).mockImplementation(() => "");
 
-      const result = validateFileAtVersion("/path/to/repo", "file.yml", "v1.0.0", "tag");
+      const result = validateFileAtVersion(
+        "/path/to/repo",
+        "file.yml",
+        "v1.0.0",
+        "tag"
+      );
 
       expect(result).toBe(true);
       expect(child_process.execSync).toHaveBeenCalledWith(
@@ -179,7 +190,12 @@ describe("git-utils", () => {
       // Setup mock
       vi.mocked(child_process.execSync).mockImplementation(() => "");
 
-      const result = validateFileAtVersion("/path/to/repo", "/file.yml", "v1.0.0", "tag");
+      const result = validateFileAtVersion(
+        "/path/to/repo",
+        "/file.yml",
+        "v1.0.0",
+        "tag"
+      );
 
       expect(result).toBe(true);
       expect(child_process.execSync).toHaveBeenCalledWith(
@@ -196,7 +212,12 @@ describe("git-utils", () => {
         })
         .mockImplementationOnce(() => "");
 
-      const result = validateFileAtVersion("/path/to/repo", "file.yml", "main", "branch");
+      const result = validateFileAtVersion(
+        "/path/to/repo",
+        "file.yml",
+        "main",
+        "branch"
+      );
 
       expect(result).toBe(true);
       expect(child_process.execSync).toHaveBeenNthCalledWith(
@@ -217,7 +238,12 @@ describe("git-utils", () => {
         throw new Error("File not found");
       });
 
-      const result = validateFileAtVersion("/path/to/repo", "nonexistent.yml", "v1.0.0", "tag");
+      const result = validateFileAtVersion(
+        "/path/to/repo",
+        "nonexistent.yml",
+        "v1.0.0",
+        "tag"
+      );
 
       expect(result).toBe(false);
     });
@@ -228,7 +254,12 @@ describe("git-utils", () => {
       // Setup mock
       vi.mocked(child_process.execSync).mockReturnValue("file content\n");
 
-      const result = getFileContentAtVersion("/path/to/repo", "file.yml", "v1.0.0", "tag");
+      const result = getFileContentAtVersion(
+        "/path/to/repo",
+        "file.yml",
+        "v1.0.0",
+        "tag"
+      );
 
       expect(result).toBe("file content\n");
       expect(child_process.execSync).toHaveBeenCalledWith(
@@ -241,7 +272,12 @@ describe("git-utils", () => {
       // Setup mock
       vi.mocked(child_process.execSync).mockReturnValue("file content\n");
 
-      const result = getFileContentAtVersion("/path/to/repo", "/file.yml", "v1.0.0", "tag");
+      const result = getFileContentAtVersion(
+        "/path/to/repo",
+        "/file.yml",
+        "v1.0.0",
+        "tag"
+      );
 
       expect(result).toBe("file content\n");
       expect(child_process.execSync).toHaveBeenCalledWith(
@@ -258,7 +294,12 @@ describe("git-utils", () => {
         }) // local branch check
         .mockImplementationOnce(() => "file content\n"); // command execution
 
-      const result = getFileContentAtVersion("/path/to/repo", "file.yml", "main", "branch");
+      const result = getFileContentAtVersion(
+        "/path/to/repo",
+        "file.yml",
+        "main",
+        "branch"
+      );
 
       expect(result).toBe("file content\n");
       expect(child_process.execSync).toHaveBeenNthCalledWith(
@@ -280,7 +321,12 @@ describe("git-utils", () => {
       });
       vi.spyOn(console, "error").mockImplementation(() => {});
 
-      const result = getFileContentAtVersion("/path/to/repo", "nonexistent.yml", "v1.0.0", "tag");
+      const result = getFileContentAtVersion(
+        "/path/to/repo",
+        "nonexistent.yml",
+        "v1.0.0",
+        "tag"
+      );
 
       expect(result).toBeNull();
       expect(console.error).toHaveBeenCalled();

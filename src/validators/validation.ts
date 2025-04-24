@@ -3,13 +3,16 @@ import path from "node:path";
 import type { RepoConfig } from "#config";
 import { fileExists } from "#utils/file";
 import { validateFileAtVersion, validateRepoVersion } from "#utils/git";
+import { parseVersionReference } from "#validators/parsers";
+import {
+  collectAllReferences,
+  discoverRepositoryAliases,
+} from "#validators/references";
 import {
   type PipelineReference,
   ReferenceValidationResult,
-  type ValidationResult
+  type ValidationResult,
 } from "#validators/types";
-import { parseVersionReference } from "#validators/parsers";
-import { collectAllReferences, discoverRepositoryAliases } from "#validators/references";
 import { findRepoConfig, resolveTargetPath } from "#validators/utils";
 
 /**
@@ -68,7 +71,9 @@ export function validateExternalReference(
   // Resolve the file path within the target repository
   const resolvedPath = path.join(
     targetRepoConfig.path,
-    reference.target.startsWith("/") ? reference.target.substring(1) : reference.target
+    reference.target.startsWith("/")
+      ? reference.target.substring(1)
+      : reference.target
   );
 
   // First check if the file exists directly in the filesystem (latest version)
@@ -181,10 +186,14 @@ export function validateReference(
  * @param repos - Single repository path or array of repository configurations
  * @returns Validation result containing references and validation status
  */
-export function validatePipelines(repos: string | RepoConfig[]): ValidationResult {
+export function validatePipelines(
+  repos: string | RepoConfig[]
+): ValidationResult {
   // Convert single path to RepoConfig if necessary
   const initialRepoConfigs: RepoConfig[] =
-    typeof repos === "string" ? [{ name: "repo", path: repos, aliases: [] }] : repos;
+    typeof repos === "string"
+      ? [{ name: "repo", path: repos, aliases: [] }]
+      : repos;
 
   // Enhance repo configs with discovered aliases
   const repoConfigs = discoverRepositoryAliases(initialRepoConfigs);
@@ -211,7 +220,13 @@ export function validatePipelines(repos: string | RepoConfig[]): ValidationResul
       return;
     }
 
-    validateReference(reference, repoConfigs, validReferences, brokenReferences, versionIssues);
+    validateReference(
+      reference,
+      repoConfigs,
+      validReferences,
+      brokenReferences,
+      versionIssues
+    );
   });
 
   // Create the validation result

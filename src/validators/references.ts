@@ -1,11 +1,14 @@
 import {
   EXTERNAL_REFERENCE_PATTERNS,
   LOCAL_REFERENCE_PATTERNS,
-  type RepoConfig
+  type RepoConfig,
 } from "#config";
 import { findPipelineFiles, readFileContent } from "#utils/file";
+import {
+  extractReferencesFromPatterns,
+  extractRepositoryDeclarations,
+} from "#validators/parsers";
 import type { PipelineReference } from "#validators/types";
-import { extractReferencesFromPatterns, extractRepositoryDeclarations } from "#validators/parsers";
 
 /**
  * Extract all types of references from a YAML pipeline file
@@ -14,7 +17,10 @@ import { extractReferencesFromPatterns, extractRepositoryDeclarations } from "#v
  * @param fileContent - Content of the file to analyze
  * @returns Array of pipeline references found in the file
  */
-export function extractReferences(filePath: string, fileContent: string): PipelineReference[] {
+export function extractReferences(
+  filePath: string,
+  fileContent: string
+): PipelineReference[] {
   // Use the helper function to extract references from different patterns
   const localReferences = extractReferencesFromPatterns(
     filePath,
@@ -53,7 +59,8 @@ export function extractReferences(filePath: string, fileContent: string): Pipeli
 
   // Extract repository declarations and version information
   try {
-    const { repos: repoDeclarations, repoVersions } = extractRepositoryDeclarations(fileContent);
+    const { repos: repoDeclarations, repoVersions } =
+      extractRepositoryDeclarations(fileContent);
 
     // Add repository declarations with appropriate context
     for (const [alias, repoName] of Object.entries(repoDeclarations)) {
@@ -77,7 +84,11 @@ export function extractReferences(filePath: string, fileContent: string): Pipeli
 
       // Apply version information to related template references if they use this repository
       for (const ref of references) {
-        if (ref.targetRepo === alias && !ref.targetVersion && versionInfo?.version) {
+        if (
+          ref.targetRepo === alias &&
+          !ref.targetVersion &&
+          versionInfo?.version
+        ) {
           // This template reference uses a repository with a specified version
           ref.targetVersion = versionInfo.version;
           ref.versionType = versionInfo.versionType;
@@ -101,7 +112,9 @@ export function extractReferences(filePath: string, fileContent: string): Pipeli
  * @param repoConfigs - Repository configurations to analyze
  * @returns Array of all discovered references
  */
-export function collectAllReferences(repoConfigs: RepoConfig[]): PipelineReference[] {
+export function collectAllReferences(
+  repoConfigs: RepoConfig[]
+): PipelineReference[] {
   const allReferences: PipelineReference[] = [];
   const errors: Array<{ path: string; error: unknown }> = [];
 
@@ -120,21 +133,27 @@ export function collectAllReferences(repoConfigs: RepoConfig[]): PipelineReferen
           errors.push({ path: filePath, error });
           // Only log in non-test environments
           if (process.env.NODE_ENV !== "test") {
-            console.error(`Error processing file ${filePath}: ${String(error)}`);
+            console.error(
+              `Error processing file ${filePath}: ${String(error)}`
+            );
           }
         }
       });
     } catch (error) {
       errors.push({ path: repo.path, error });
       if (process.env.NODE_ENV !== "test") {
-        console.error(`Error processing repository ${repo.name} (${repo.path}): ${error}`);
+        console.error(
+          `Error processing repository ${repo.name} (${repo.path}): ${error}`
+        );
       }
     }
   });
 
   // Provide summary of errors if any occurred
   if (errors.length > 0 && process.env.NODE_ENV !== "test") {
-    console.error(`Failed to process ${errors.length} files during reference collection`);
+    console.error(
+      `Failed to process ${errors.length} files during reference collection`
+    );
   }
 
   return allReferences;
@@ -146,7 +165,9 @@ export function collectAllReferences(repoConfigs: RepoConfig[]): PipelineReferen
  * @param repoConfigs - Repository configurations to scan
  * @returns Enhanced repository configurations with discovered aliases
  */
-export function discoverRepositoryAliases(repoConfigs: RepoConfig[]): RepoConfig[] {
+export function discoverRepositoryAliases(
+  repoConfigs: RepoConfig[]
+): RepoConfig[] {
   // First, create a map of repo names to their configs
   const repoNameMap = new Map<string, RepoConfig>();
   repoConfigs.forEach((repo) => {
@@ -174,7 +195,8 @@ export function discoverRepositoryAliases(repoConfigs: RepoConfig[]): RepoConfig
     pipelineFiles.forEach((filePath) => {
       try {
         const fileContent = readFileContent(filePath);
-        const { repos: repoDeclarations } = extractRepositoryDeclarations(fileContent);
+        const { repos: repoDeclarations } =
+          extractRepositoryDeclarations(fileContent);
 
         // For each declaration, add the alias to the corresponding repo
         for (const [alias, repoName] of Object.entries(repoDeclarations)) {
@@ -182,7 +204,8 @@ export function discoverRepositoryAliases(repoConfigs: RepoConfig[]): RepoConfig
           const targetRepo = repoNameMap.get(repoName);
 
           if (targetRepo) {
-            const aliases = discoveredAliases.get(targetRepo.name) || new Set<string>();
+            const aliases =
+              discoveredAliases.get(targetRepo.name) || new Set<string>();
             aliases.add(alias);
             discoveredAliases.set(targetRepo.name, aliases);
           }
@@ -191,7 +214,9 @@ export function discoverRepositoryAliases(repoConfigs: RepoConfig[]): RepoConfig
       } catch (error) {
         // Skip this file if we encounter an error
         if (process.env.NODE_ENV !== "test") {
-          console.error(`Error processing ${filePath} for repo aliases: ${error}`);
+          console.error(
+            `Error processing ${filePath} for repo aliases: ${error}`
+          );
         }
       }
     });

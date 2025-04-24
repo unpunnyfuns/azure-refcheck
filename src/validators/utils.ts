@@ -10,7 +10,10 @@ import type { RepoConfig } from "#config";
  * @param match - Regular expression match result
  * @returns Line number (1-based) where the match appears
  */
-export function getLineNumberForMatch(fileContent: string, match: RegExpExecArray): number {
+export function getLineNumberForMatch(
+  fileContent: string,
+  match: RegExpExecArray
+): number {
   const textBeforeMatch = fileContent.substring(0, match.index);
   return textBeforeMatch.split("\n").length;
 }
@@ -42,7 +45,10 @@ export function getContextForMatch(
  * @param configs - Array of repository configurations to search
  * @returns Matching repository configuration or undefined if not found
  */
-export function findRepoConfig(repoName: string, configs: RepoConfig[]): RepoConfig | undefined {
+export function findRepoConfig(
+  repoName: string,
+  configs: RepoConfig[]
+): RepoConfig | undefined {
   // First, try exact name match
   let config = configs.find((r) => r.name === repoName);
 
@@ -80,7 +86,9 @@ export function resolveTargetPath(
     if (repoConfig?.path) {
       // If target path is absolute (from repo root), or repo-relative
       if (targetPath.startsWith("/")) {
-        return path.normalize(path.join(repoConfig.path, targetPath.substring(1)));
+        return path.normalize(
+          path.join(repoConfig.path, targetPath.substring(1))
+        );
       }
       return path.normalize(path.join(repoConfig.path, targetPath));
     }
@@ -95,18 +103,23 @@ export function resolveTargetPath(
     try {
       // Use path module to safely handle directory names that might contain special characters
       const sourceDir = path.dirname(sourcePath);
-      
+
       // Use git -C for correct directory context
-      const repoRoot = execSync(`git -C "${sourceDir}" rev-parse --show-toplevel`, {
-        encoding: "utf-8",
-        timeout: 3000, // 3 second timeout
-      }).trim();
+      const repoRoot = execSync(
+        `git -C "${sourceDir}" rev-parse --show-toplevel`,
+        {
+          encoding: "utf-8",
+          timeout: 3000, // 3 second timeout
+        }
+      ).trim();
 
       return path.normalize(path.join(repoRoot, targetPath.substring(1)));
     } catch (error) {
       // Log the error with better context
       if (process.env.NODE_ENV !== "test") {
-        console.error(`Failed to resolve repository root for ${sourcePath}: ${error}`);
+        console.error(
+          `Failed to resolve repository root for ${sourcePath}: ${error}`
+        );
       }
       // Fallback to current working directory
       return path.normalize(path.join(process.cwd(), targetPath));
