@@ -1,8 +1,8 @@
 import { describe, expect, test, vi } from "vitest";
-import { 
-  parseVersionReference, 
+import {
+  extractReferencesFromPatterns,
   extractRepositoryDeclarations,
-  extractReferencesFromPatterns
+  parseVersionReference,
 } from "#validators/parsers";
 
 describe("Parsers", () => {
@@ -21,7 +21,9 @@ describe("Parsers", () => {
 
     test("should identify commit SHA", () => {
       // Full 40-char SHA
-      const result = parseVersionReference("1234567890abcdef1234567890abcdef12345678");
+      const result = parseVersionReference(
+        "1234567890abcdef1234567890abcdef12345678"
+      );
       expect(result.version).toBe("1234567890abcdef1234567890abcdef12345678");
       expect(result.versionType).toBe("commit");
     });
@@ -49,15 +51,15 @@ resources:
 `;
 
       const result = extractRepositoryDeclarations(yamlContent);
-      
+
       expect(result.repos).toEqual({
         templates: "TemplateLibrary",
-        shared: "SharedRepo"
+        shared: "SharedRepo",
       });
-      
+
       expect(result.repoVersions).toEqual({
         templates: { version: "v1.0.0", versionType: "tag" },
-        shared: { version: "main", versionType: "branch" }
+        shared: { version: "main", versionType: "branch" },
       });
     });
 
@@ -80,12 +82,12 @@ resources:
 `;
 
       const result = extractRepositoryDeclarations(invalidYamlContent);
-      
+
       expect(result.repos).toEqual({
         templates: "TemplateLibrary",
-        shared: "SharedRepo"
+        shared: "SharedRepo",
       });
-      
+
       // The exact result depends on whether the implementation extracts the tag from the ref
       // Both forms are acceptable, so we just verify that it has the template version
       expect(result.repoVersions).toHaveProperty("templates");
@@ -96,8 +98,14 @@ resources:
     });
 
     test("should handle empty or invalid input", () => {
-      expect(extractRepositoryDeclarations("")).toEqual({ repos: {}, repoVersions: {} });
-      expect(extractRepositoryDeclarations("not yaml content")).toEqual({ repos: {}, repoVersions: {} });
+      expect(extractRepositoryDeclarations("")).toEqual({
+        repos: {},
+        repoVersions: {},
+      });
+      expect(extractRepositoryDeclarations("not yaml content")).toEqual({
+        repos: {},
+        repoVersions: {},
+      });
     });
   });
 
@@ -109,14 +117,14 @@ steps:
 - template: another/template.yml
 `;
       const patterns = [/template:\s*([^\n@]+)/g];
-      
+
       const results = extractReferencesFromPatterns(
-        "/path/source.yml", 
-        fileContent, 
-        patterns, 
+        "/path/source.yml",
+        fileContent,
+        patterns,
         false
       );
-      
+
       expect(results).toHaveLength(2);
       expect(results[0].source).toBe("/path/source.yml");
       expect(results[0].target).toBe("path/to/template.yml");
@@ -131,14 +139,14 @@ steps:
 - template: another/template.yml@shared
 `;
       const patterns = [/template:\s*([^@\n]+)@([^\n]+)/g];
-      
+
       const results = extractReferencesFromPatterns(
-        "/path/source.yml", 
-        fileContent, 
-        patterns, 
+        "/path/source.yml",
+        fileContent,
+        patterns,
         true
       );
-      
+
       expect(results).toHaveLength(2);
       expect(results[0].source).toBe("/path/source.yml");
       expect(results[0].target).toBe("path/to/template.yml");
@@ -155,14 +163,14 @@ steps:
 line 5
 line 6`;
       const patterns = [/template:\s*([^\n@]+)/g];
-      
+
       const results = extractReferencesFromPatterns(
-        "/path/source.yml", 
-        fileContent, 
-        patterns, 
+        "/path/source.yml",
+        fileContent,
+        patterns,
         false
       );
-      
+
       expect(results).toHaveLength(1);
       expect(results[0].lineNumber).toBe(4); // Line 4 of the file
       expect(results[0].context).toContain("template: path/to/template.yml");

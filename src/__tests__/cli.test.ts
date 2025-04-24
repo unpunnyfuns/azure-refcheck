@@ -17,7 +17,7 @@ vi.mock("fs", () => ({
     writeFileSync: vi.fn(),
     existsSync: vi.fn().mockReturnValue(true),
     readdirSync: vi.fn().mockReturnValue([]),
-  }
+  },
 }));
 
 vi.mock("commander", () => {

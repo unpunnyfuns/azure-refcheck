@@ -2,6 +2,9 @@
 
 A tool to validate all template imports and extensions in Azure Pipelines across multiple repositories.
 
+[![npm version](https://img.shields.io/npm/v/@unpunnyfuns/azure-refcheck.svg)](https://www.npmjs.com/package/@unpunnyfuns/azure-refcheck)
+[![GitHub repo](https://img.shields.io/badge/GitHub-azure--refcheck-blue)](https://github.com/unpunnyfuns/azure-refcheck)
+
 ## Overview
 
 This tool analyzes Azure Pipeline YAML files to validate references between them. It can detect:
@@ -85,16 +88,28 @@ npm run build
 
 ### Testing
 
-Run the test suite:
+Run the test suite (watch mode for development):
 
 ```bash
 npm test
 ```
 
-Run pipeline validation tests:
+Run tests once (CI/CD mode):
+
+```bash
+npm run test:run
+```
+
+Run pipeline validation tests with test fixtures:
 
 ```bash
 npm run validate
+```
+
+Run all quality checks (linting, testing, building):
+
+```bash
+npm run quality
 ```
 
 ### External Test Fixtures
@@ -103,6 +118,12 @@ For thorough testing, especially for version validation scenarios, we use extern
 
 See [Test Fixtures README](./test-fixtures/README.md) for more details on how fixtures are structured and can be used.
 
+
+## Issues and Contributions
+
+Issues and feature requests can be submitted on our [GitHub repo](https://github.com/unpunnyfuns/azure-refcheck/issues).
+
+Pull requests are welcome! Please read our [contributing guidelines](https://github.com/unpunnyfuns/azure-refcheck/blob/main/CONTRIBUTING.md) first.
 
 ## License
 

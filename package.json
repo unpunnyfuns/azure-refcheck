@@ -5,11 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": [
-    "dist",
-    "README.md",
-    "bin"
-  ],
+  "files": ["dist", "README.md", "bin"],
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -55,6 +51,7 @@
     "build": "npm run clean && tsc && cp dist/cli.js dist/cli.mjs && chmod +x dist/cli.mjs",
     "prepublishOnly": "npm run quality",
     "test": "cross-env NODE_ENV=test vitest",
+    "test:run": "cross-env NODE_ENV=test vitest run",
     "test:watch": "cross-env NODE_ENV=test vitest --watch",
     "test:coverage": "cross-env NODE_ENV=test vitest run --coverage",
     "dev": "npm run build -- --watch",
@@ -64,8 +61,8 @@
     "format:fix": "biome format --write .",
     "check": "biome check --write .",
     "check:unsafe": "biome check --write --unsafe .",
-    "ci": "npm run lint && npm run test && npm run build",
-    "quality": "npm run lint -- --error-on-warnings && npm run test && npm run build",
+    "ci": "npm run lint && npm run test:run && npm run build",
+    "quality": "npm run lint -- --error-on-warnings && npm run test:run && npm run build",
     "validate": "bash ./test-fixtures/run-validation-check.sh"
   },
   "bin": {
@@ -78,7 +75,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/unpunnyfuns/pipeline-validation.git"
+    "url": "https://github.com/unpunnyfuns/azure-refcheck.git"
   },
   "keywords": [
     "azure",
