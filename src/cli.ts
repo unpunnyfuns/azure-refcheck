@@ -287,6 +287,14 @@ async function runRepositoriesValidation(options: {
   const { configPath, autoDetect, basePath, outputPath, verbose } = options;
   let repoConfigs: RepoConfig[] = [];
 
+  // Check if we have necessary configuration
+  if (!configPath && !autoDetect) {
+    console.error(
+      "Error: No repository configuration or auto-detection specified."
+    );
+    return 1;
+  }
+
   try {
     // Get repository configurations
     repoConfigs = getRepositoryConfigs({ configPath, autoDetect, basePath });
@@ -309,10 +317,6 @@ async function runRepositoriesValidation(options: {
         console.error("Configuration error:", err.message);
       } else {
         console.error("Error preparing for validation:", err.message);
-      }
-
-      if (!configPath && !autoDetect) {
-        program.help();
       }
     });
   }
@@ -357,7 +361,9 @@ function setupCommands() {
     .description(
       "Azure Pipeline Reference Validator - Validates references between pipeline YAML files"
     )
-    .version(packageJson.version);
+    .version(packageJson.version)
+    .showHelpAfterError(true)
+    .enablePositionalOptions(true);
 
   // Unified command for both single repo and multiple repos
   program
@@ -506,6 +512,9 @@ function setupCommands() {
       process.exit(exitCode);
     });
 
+  // Add a default help command if no arguments are provided
+  program.addHelpCommand("help", "Display help for commands");
+
   return program;
 }
 
@@ -514,6 +523,13 @@ function setupCommands() {
  */
 async function main() {
   const program = setupCommands();
+  
+  // Show help if no arguments are provided (just the command itself)
+  if (process.argv.length <= 2) {
+    program.help();
+    return;
+  }
+  
   await program.parseAsync(process.argv);
 
   // Note: Process exit is handled within the action handler

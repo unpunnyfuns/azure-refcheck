@@ -25,14 +25,18 @@ vi.mock("commander", () => {
     name: vi.fn().mockReturnThis(),
     description: vi.fn().mockReturnThis(),
     version: vi.fn().mockReturnThis(),
+    showHelpAfterError: vi.fn().mockReturnThis(),
+    enablePositionalOptions: vi.fn().mockReturnThis(),
     argument: vi.fn().mockReturnThis(),
     option: vi.fn().mockReturnThis(),
     action: vi.fn().mockReturnThis(),
     command: vi.fn().mockReturnThis(),
     parseAsync: vi.fn().mockResolvedValue({}),
     help: vi.fn(),
+    outputHelp: vi.fn(),
     hook: vi.fn().mockReturnThis(),
     opts: vi.fn().mockReturnValue({}),
+    addHelpCommand: vi.fn().mockReturnThis(),
   };
 
   return {
