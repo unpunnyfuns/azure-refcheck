@@ -36,6 +36,12 @@ export function validateExternalReference(
     return ReferenceValidationResult.MISSING_REPO;
   }
 
+  // If the target repo is set to skipValidation, consider all references to it valid
+  if (targetRepoConfig.skipValidation) {
+    validReferences.push(reference);
+    return ReferenceValidationResult.VALID;
+  }
+
   // Determine which version to use for validation:
   // 1. First use explicit targetVersion from the reference if present
   // 2. Otherwise use the ref from the target repo config if specified

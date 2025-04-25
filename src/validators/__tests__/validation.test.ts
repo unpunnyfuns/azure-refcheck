@@ -82,6 +82,53 @@ describe("Validation Module", () => {
       expect(versionIssues).toHaveLength(0);
     });
 
+    test("should skip validation for repositories with skipValidation flag", () => {
+      const reference: PipelineReference = {
+        source: "/path/to/source.yml",
+        target: "template.yml",
+        targetRepo: "skipped-repo",
+        lineNumber: 10,
+        context: "template: template.yml@skipped-repo",
+      };
+
+      const validRefs: PipelineReference[] = [];
+      const brokenRefs: PipelineReference[] = [];
+      const versionIssues: PipelineReference[] = [];
+
+      const repoConfigs = [
+        {
+          name: "skipped-repo",
+          path: "/path/to/skipped-repo",
+          aliases: [],
+          skipValidation: true,
+        },
+      ];
+
+      // Make all validations fail, but the test should still pass
+      vi.mocked(fileExists).mockReturnValue(false);
+      vi.mocked(validateFileAtVersion).mockReturnValue(false);
+
+      const result = validateExternalReference(
+        reference,
+        "skipped-repo",
+        repoConfigs,
+        validRefs,
+        brokenRefs,
+        versionIssues
+      );
+
+      // Should be valid because of skipValidation, regardless of the file existing
+      expect(result).toBe(ReferenceValidationResult.VALID);
+      expect(validRefs).toHaveLength(1);
+      expect(brokenRefs).toHaveLength(0);
+      expect(versionIssues).toHaveLength(0);
+
+      // Validation functions should not be called
+      expect(fileExists).not.toHaveBeenCalled();
+      expect(validateFileAtVersion).not.toHaveBeenCalled();
+      expect(validateRepoVersion).not.toHaveBeenCalled();
+    });
+
     test("should use repository configuration ref when reference has no version", () => {
       // Setup mocks
       vi.mocked(fileExists).mockReturnValue(false);
@@ -559,6 +606,39 @@ describe("Validation Module", () => {
       expect(result.isValid).toBe(true);
       expect(result.validReferences).toHaveLength(1);
       expect(result.brokenReferences).toHaveLength(0);
+    });
+
+    test("should skip repositories with skipValidation flag", () => {
+      // Setup mocks
+      const mockReferences = [
+        {
+          source: "/path/to/repo1/source.yml",
+          target: "template.yml",
+          lineNumber: 10,
+          context: "template: template.yml",
+        },
+      ];
+
+      vi.mocked(collectAllReferences).mockReturnValue(mockReferences);
+      vi.mocked(fileExists).mockReturnValue(true);
+
+      const repoConfigs = [
+        { name: "repo1", path: "/path/to/repo1", aliases: [] },
+        {
+          name: "repo2",
+          path: "/path/to/repo2",
+          aliases: [],
+          skipValidation: true,
+        },
+      ];
+
+      const result = validatePipelines(repoConfigs);
+
+      expect(result).toBeDefined();
+      expect(result.isValid).toBe(true);
+
+      // Should have called collectAllReferences with the correct arguments
+      expect(collectAllReferences).toHaveBeenCalledWith(repoConfigs);
     });
 
     test("should validate pipelines with multiple repositories", () => {

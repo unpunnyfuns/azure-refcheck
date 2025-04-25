@@ -21,6 +21,11 @@ export type RepoConfig = {
    * Git will automatically determine the appropriate reference type.
    */
   ref?: string;
+  /**
+   * When true, skips validation for this repository.
+   * References to this repo will be considered valid without checking.
+   */
+  skipValidation?: boolean;
 };
 
 /**

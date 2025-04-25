@@ -5,11 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": [
-    "dist",
-    "README.md",
-    "bin"
-  ],
+  "files": ["dist", "README.md", "bin"],
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -109,6 +105,7 @@
     "node": ">=16.0.0"
   },
   "dependencies": {
+    "chokidar": "^4.0.3",
     "commander": "^13.1.0",
     "glob": "^11.0.1",
     "js-yaml": "^4.1.0"

@@ -120,6 +120,10 @@ export function collectAllReferences(
 
   // Process each repository
   repoConfigs.forEach((repo) => {
+    // Skip repositories marked with skipValidation
+    if (repo.skipValidation) {
+      return;
+    }
     try {
       const pipelineFiles = findPipelineFiles(repo.path);
 

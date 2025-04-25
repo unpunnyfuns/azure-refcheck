@@ -11,8 +11,9 @@ import {
   DirectoryNotFoundError,
   handleError,
 } from "#errors";
-import { ConsoleFormatter, FormatterFactory } from "#formatters/output";
+import { type ConsoleFormatter, FormatterFactory } from "#formatters/output";
 import type { FormatterOptions } from "#formatters/output";
+import { watchRepositories } from "#utils/watch";
 import { type ValidationResult, validatePipelines } from "#validator";
 
 // Setup version from package.json
@@ -381,7 +382,12 @@ function setupCommands() {
       "Base path for multi-repo auto-detection (only used with --auto-detect)",
       process.cwd()
     )
-    .action(async (pathArg, options) => {
+    .option(
+      "-w, --watch",
+      "Watch mode: continuously monitor for changes and re-validate",
+      false
+    )
+    .action(async (pathArg, options): Promise<void> => {
       // If a specific path is provided (not the default cwd), and it's not a config file,
       // then we should validate just that path directly, even with auto-detect
       const userSpecifiedPath = pathArg !== process.cwd();
@@ -395,6 +401,77 @@ function setupCommands() {
         (options.autoDetect === true && !userSpecifiedPath) || // Only use auto-detect in multi-repo mode if no specific path
         isConfigFile;
 
+      // Check if we're in watch mode
+      if (options.watch) {
+        try {
+          console.log("Starting watch mode...");
+
+          let repoConfigs: RepoConfig[] | string;
+          let formatter: ConsoleFormatter;
+
+          if (isMultipleRepos) {
+            // Configuration file path - either from argument or option
+            const configFile = pathArg.endsWith(".json") ? pathArg : undefined;
+            const configPath = options.config || configFile;
+
+            // When auto-detecting repos, we need to be explicit about which path to use
+            const autoDetectBasePath = options.basePath
+              ? path.resolve(options.basePath)
+              : userSpecifiedPath
+                ? path.resolve(pathArg)
+                : process.cwd();
+
+            // Get repository configurations
+            repoConfigs = getRepositoryConfigs({
+              configPath: configPath ? path.resolve(configPath) : undefined,
+              autoDetect: options.autoDetect,
+              basePath: autoDetectBasePath,
+            });
+
+            formatter = FormatterFactory.createConsoleFormatter({
+              verbose: options.verbose,
+            });
+
+            // Start watching
+            watchRepositories(repoConfigs, {
+              verbose: options.verbose,
+              onValidation: (result, repos) => {
+                console.log(formatter.format(result, repos));
+              },
+            });
+          } else {
+            // Single repository mode
+            const rootDir = path.resolve(pathArg);
+            // Validate directory exists
+            repoConfigs = validateDirectory(rootDir);
+
+            formatter = FormatterFactory.createConsoleFormatter({
+              verbose: options.verbose,
+            });
+
+            // Start watching
+            watchRepositories(repoConfigs, {
+              verbose: options.verbose,
+              onValidation: (result) => {
+                console.log(formatter.format(result));
+              },
+            });
+          }
+
+          // Keep the process alive
+          process.stdin.resume();
+          console.log("Press Ctrl+C to exit");
+
+          return;
+        } catch (error) {
+          handleError<number>(error, 1, (err: Error) => {
+            console.error("Error starting watch mode:", err.message);
+          });
+          process.exit(1);
+        }
+      }
+
+      // Regular non-watch mode execution
       let exitCode: number;
 
       if (isMultipleRepos) {
@@ -425,6 +502,7 @@ function setupCommands() {
         });
       }
 
+      // Process exit is handled in the main function
       process.exit(exitCode);
     });
 
@@ -437,6 +515,9 @@ function setupCommands() {
 async function main() {
   const program = setupCommands();
   await program.parseAsync(process.argv);
+
+  // Note: Process exit is handled within the action handler
+  // Watch mode will keep the process alive via stdin.resume()
 }
 
 // Only run the main function when this module is executed directly (not imported in tests)
