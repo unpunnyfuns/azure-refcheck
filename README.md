@@ -18,6 +18,10 @@ It can detect:
 
 ## Installation
 
+Requirements:
+- Node.js 14.x or higher
+- npm 7.x or higher
+
 ```bash
 # Local installation
 npm install @unpunnyfuns/azure-refcheck
@@ -108,11 +112,16 @@ Configuration properties:
 ### Supported Reference Types
 
 ```yaml
-# Local reference
+# Local references with template syntax
 template: templates/build.yml
+- template: templates/build.yml
 
-# Cross-repository reference
+# Local references with extends syntax
+extends: templates/build.yml
+
+# Cross-repository references
 template: templates/build.yml@template-repo
+extends: templates/build.yml@template-repo
 ```
 
 Version-specific references are defined in repository resources and are validated when checking references:
@@ -127,6 +136,17 @@ resources:
 ```
 
 Note: The `ref` property in config.json overrides any references defined in pipeline files.
+
+## Validation Approach
+
+The tool performs these validations:
+
+- Validates that referenced template files exist at the specified path
+- Checks cross-repository references against repository configurations
+- Verifies that repositories exist with the specified names or aliases
+- Validates Git references (branches, tags, commits) when specified
+
+The command returns exit code `0` when all references are valid and `1` when one or more references are invalid or an error occurred.
 
 ## Development
 
@@ -168,6 +188,17 @@ For thorough testing, especially for version validation scenarios, we use extern
 
 See [Test Fixtures README](./test-fixtures/README.md) for more details on how fixtures are structured and can be used.
 
+
+## Troubleshooting
+
+Common issues and solutions:
+
+| Issue | Solution |
+| ----- | -------- |
+| "No repositories found" | Verify paths in config file or use `--verbose` flag to see which paths are being checked |
+| "Repository not found" | Check that aliases are correctly configured or use `--verbose` to debug repository detection |
+| Version validation fails | Ensure the repository has the specified branch/tag/commit and the `url` is correctly set |
+| Performance issues with many files | Files are cached after first scan; for very large repositories use specific paths |
 
 ## Issues and Contributions
 
