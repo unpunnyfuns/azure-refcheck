@@ -1,11 +1,15 @@
 {
   "name": "@unpunnyfuns/azure-refcheck",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Azure Pipeline template reference validator - Checks template imports and extensions across repositories",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist", "README.md", "bin"],
+  "files": [
+    "dist",
+    "README.md",
+    "bin"
+  ],
   "exports": {
     ".": {
       "import": "./dist/index.js",
